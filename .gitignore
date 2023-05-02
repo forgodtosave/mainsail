@@ -18,3 +18,7 @@ package-lock.json
 cypress/screenshots/
 cypress/videos/
 components.d.ts
+
+src/plugins/languages/dist
+src/plugins/languages/*.js
+src/plugins/languages/*.d.ts

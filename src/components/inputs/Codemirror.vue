@@ -19,6 +19,7 @@ import { gcode } from '@/plugins/StreamParserGcode'
 import { indentWithTab } from '@codemirror/commands'
 import { json } from '@codemirror/lang-json'
 import { css } from '@codemirror/lang-css'
+import { klipperConfig } from '../../plugins/languages/index'
 
 @Component
 export default class Codemirror extends Mixins(BaseMixin) {
@@ -92,7 +93,7 @@ export default class Codemirror extends Mixins(BaseMixin) {
             }),
         ]
 
-        if (['cfg', 'conf'].includes(this.fileExtension)) extensions.push(StreamLanguage.define(klipper_config))
+        if (['cfg', 'conf'].includes(this.fileExtension)) extensions.push(klipperConfig())
         else if (['gcode'].includes(this.fileExtension)) extensions.push(StreamLanguage.define(gcode))
         else if (['json'].includes(this.fileExtension)) extensions.push(json())
         else if (['css', 'scss', 'sass'].includes(this.fileExtension)) extensions.push(css())
