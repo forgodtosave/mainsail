@@ -1,4 +1,5 @@
-import { parser } from './klipperConfig.grammar'
+//@ts-ignore
+import { parser } from './klipperConfigLang.js'
 import {
     LRLanguage,
     LanguageSupport,
@@ -19,17 +20,22 @@ export const klipperConfigLang = LRLanguage.define({
         Application: foldInside
       }), */
             styleTags({
+                ImportKeyword: t.keyword,
                 Import: t.keyword,
-                Identifier: t.variableName,
+                BlockType: t.keyword,
+        
+                Parameter: t.propertyName,
+                Identifier: t.typeName,
+
+                LineComment: t.lineComment,
                 Boolean: t.bool,
                 String: t.string,
-                LineComment: t.lineComment,
                 Number: t.number,
-                BlockType: t.keyword,
-                Parameter: t.variableName,
-                Pin: t.number,
-
-                /* "( )": t.paren */
+                Cords: t.number,
+                Pin: t.atom,
+                VirtualPin: t.atom,
+                Path: t.className,
+                Jinja2: t.typeName
             }),
         ],
     }),
@@ -43,5 +49,5 @@ export function klipperConfig() {
 }
 
 /* 
-npx @lezer/generator syntax.grammar -o klipperConfigLang.js
+npx @lezer/generator klipperConfig.grammar -o klipperConfigLang.js
  */

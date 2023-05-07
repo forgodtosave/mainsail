@@ -19,7 +19,7 @@ import { gcode } from '@/plugins/StreamParserGcode'
 import { indentWithTab } from '@codemirror/commands'
 import { json } from '@codemirror/lang-json'
 import { css } from '@codemirror/lang-css'
-import { klipperConfig } from '../../plugins/languages/index'
+import { klipperConfig } from '../../plugins/languages/KlipperConfigLanguage/index'
 
 @Component
 export default class Codemirror extends Mixins(BaseMixin) {

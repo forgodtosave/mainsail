@@ -20,5 +20,5 @@ cypress/videos/
 components.d.ts
 
 src/plugins/languages/dist
-src/plugins/languages/*.js
-src/plugins/languages/*.d.ts
+src/plugins/languages/KlipperConfigLanguage/*.js
+src/plugins/languages/KlipperConfigLanguage/*.d.ts
