@@ -1,29 +1,20 @@
 //@ts-ignore
 import { parser } from './klipperConfigLang.js'
-import {
-    LRLanguage,
-    LanguageSupport,
-    indentNodeProp,
-    foldNodeProp,
-    foldInside,
-    delimitedIndent,
-} from '@codemirror/language'
+import { LRLanguage, LanguageSupport, StreamLanguage } from '@codemirror/language'
 import { styleTags, tags as t } from '@lezer/highlight'
+import { parseMixed } from '@lezer/common'
+import { gcode } from '../../StreamParserGcode.js'
+
+const jinja2Parser = StreamLanguage.define(gcode).parser
 
 export const klipperConfigLang = LRLanguage.define({
     parser: parser.configure({
         props: [
-            /* indentNodeProp.add({
-        Application: delimitedIndent({closing: ")", align: false})
-      }), */
-            /* foldNodeProp.add({
-        Application: foldInside
-      }), */
             styleTags({
                 ImportKeyword: t.keyword,
                 Import: t.keyword,
                 BlockType: t.keyword,
-        
+
                 Parameter: t.propertyName,
                 Identifier: t.typeName,
 
@@ -35,9 +26,13 @@ export const klipperConfigLang = LRLanguage.define({
                 Pin: t.atom,
                 VirtualPin: t.atom,
                 Path: t.className,
+                File: t.className,
                 Jinja2: t.typeName
             }),
         ],
+        /* wrap: parseMixed((node) => {
+            return node.name == 'Jinja2' ? { parser: jinja2Parser } : null
+        }), */
     }),
     languageData: {
         commentTokens: { line: '#' },
@@ -49,5 +44,6 @@ export function klipperConfig() {
 }
 
 /* 
+to generate the parser run:
 npx @lezer/generator klipperConfig.grammar -o klipperConfigLang.js
  */

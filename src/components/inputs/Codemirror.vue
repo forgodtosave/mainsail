@@ -20,6 +20,9 @@ import { indentWithTab } from '@codemirror/commands'
 import { json } from '@codemirror/lang-json'
 import { css } from '@codemirror/lang-css'
 import { klipperConfig } from '../../plugins/languages/KlipperConfigLanguage/index'
+import { logTree } from '../../plugins/languages/printLezerTree'
+
+import {syntaxTree} from "@codemirror/language"
 
 @Component
 export default class Codemirror extends Mixins(BaseMixin) {
@@ -49,6 +52,20 @@ export default class Codemirror extends Mixins(BaseMixin) {
         if (newVal !== cm_value) {
             this.setCmValue(newVal)
         }
+        const state = this.cminstance.state
+        logTree( syntaxTree(state), state.doc.toString() )
+        /* const state = this.cminstance.state
+        syntaxTree(state).iterate({
+            enter: (node) => { 
+                if (node.from >= 3600 && node.name != "BlockBody" && node.name != "Block") {
+                    if (node.name === "BodyLine") {
+                        console.log("-- " + state.doc.lineAt(node.from).text + " ----------------")
+                    } else {
+                        console.log(node.name + "  (" + state.doc.sliceString(node.from, node.to)+ ")")
+                    }
+                }
+            }}
+        ) */
     }
 
     mounted(): void {
