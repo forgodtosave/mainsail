@@ -16,12 +16,13 @@ BodyLine { Parameter ":" Value newline | GcodeKeyword ":" Jinja2 newline }
 Value { valueBlock<value> }
 Jinja2 { valueBlock<jinja2> }
 
-value { Pin | VirtualPin | Cords | Number | String | Boolean  }
+value { Pin | VirtualPin | Cords | Number | String | Boolean | Path }
 Number { number }
 String { string }
 Cords { charSep<number, ","> }
 VirtualPin { string ":" string }
 File {  "/"? string ( "/" string)* }
+Path { "/"? charSep<string, "/"> }
 
 
 
