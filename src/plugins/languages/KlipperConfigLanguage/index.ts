@@ -3,9 +3,9 @@ import { parser } from './klipperConfigLang.js'
 import { LRLanguage, LanguageSupport, StreamLanguage } from '@codemirror/language'
 import { styleTags, tags as t } from '@lezer/highlight'
 import { parseMixed } from '@lezer/common'
-import { gcode } from '../../StreamParserGcode.js'
+import { klipper_config } from '../../StreamParserKlipperConfig.js'
 
-const jinja2Parser = StreamLanguage.define(gcode).parser
+const jinja2Parser = StreamLanguage.define(klipper_config).parser
 
 export const klipperConfigLang = LRLanguage.define({
     parser: parser.configure({
@@ -13,11 +13,12 @@ export const klipperConfigLang = LRLanguage.define({
             styleTags({
                 ImportKeyword: t.keyword,
                 Import: t.keyword,
-                BlockType: t.keyword,
+                Block: t.namespace,
+                BlockType: t.namespace,
 
-                Parameter: t.propertyName,
-                Identifier: t.typeName,
+                Parameter: t.keyword,
 
+                Identifier: t.attributeName,
                 LineComment: t.lineComment,
                 Boolean: t.bool,
                 String: t.string,
@@ -30,9 +31,9 @@ export const klipperConfigLang = LRLanguage.define({
                 Jinja2: t.typeName
             }),
         ],
-        /* wrap: parseMixed((node) => {
+        wrap: parseMixed((node) => {
             return node.name == 'Jinja2' ? { parser: jinja2Parser } : null
-        }), */
+        }),
     }),
     languageData: {
         commentTokens: { line: '#' },

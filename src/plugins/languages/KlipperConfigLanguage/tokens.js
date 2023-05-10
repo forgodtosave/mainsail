@@ -1,13 +1,19 @@
 /* ref: https://github.com/lezer-parser/python/blob/main/src/tokens.js */
 import { ExternalTokenizer, ContextTracker } from '@lezer/lr'
 
-import { newline as newlineToken, eof, blankLineStart, indent, dedent } from './klipperConfigLang.terms.js'
+import {
+    newline as newlineToken,
+    eof,
+    blankLineStart,
+    indent,
+    dedent,
+    newlineBracketed,
+} from './klipperConfigLang.terms.js'
 
 const newline = 10,
     carriageReturn = 13,
     space = 32,
-    tab = 9,
-    hash = 35
+    tab = 9
 
 const bracketed = new Set([indent])
 
@@ -19,13 +25,15 @@ export const newlines = new ExternalTokenizer(
     (input, stack) => {
         if (input.next < 0) {
             input.acceptToken(eof)
+        } else if (stack.context.depth < 0) {
+            if (isLineBreak(input.next)) input.acceptToken(newlineBracketed, 1)
         } else if (isLineBreak(input.peek(-1)) && stack.canShift(blankLineStart)) {
             let spaces = 0
             while (input.next == space || input.next == tab) {
                 input.advance()
                 spaces++
             }
-            if (input.next == newline || input.next == carriageReturn || input.next == hash)
+            if (input.next == newline || input.next == carriageReturn )
                 input.acceptToken(blankLineStart, -spaces)
         } else if (isLineBreak(input.next)) {
             input.acceptToken(newlineToken, 1)
@@ -49,9 +57,9 @@ export const indentation = new ExternalTokenizer((input, stack) => {
             input.advance()
             chars++
         }
-        if (depth != cDepth && input.next != newline && input.next != carriageReturn && input.next != hash) {
-            if (depth < cDepth) input.acceptToken(dedent, -chars)
-            else input.acceptToken(indent)
+        if (depth != cDepth && input.next != newline && input.next != carriageReturn) {
+            if (depth < cDepth) input.acceptToken(Dedent, -chars)
+            else input.acceptToken(Indent)
         }
     }
 })
