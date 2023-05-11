@@ -1,6 +1,6 @@
 //@ts-ignore
 import { parser } from './klipperConfigLang.js'
-import { LRLanguage, LanguageSupport, StreamLanguage } from '@codemirror/language'
+import { LRLanguage, LanguageSupport, StreamLanguage, foldNodeProp, foldInside} from '@codemirror/language'
 import { styleTags, tags as t } from '@lezer/highlight'
 import { parseMixed } from '@lezer/common'
 import { klipper_config } from '../../StreamParserKlipperConfig.js'
@@ -10,6 +10,9 @@ const jinja2Parser = StreamLanguage.define(klipper_config).parser
 export const klipperConfigLang = LRLanguage.define({
     parser: parser.configure({
         props: [
+            foldNodeProp.add({
+                Block: foldInside
+              }),
             styleTags({
                 ImportKeyword: t.keyword,
                 Import: t.keyword,

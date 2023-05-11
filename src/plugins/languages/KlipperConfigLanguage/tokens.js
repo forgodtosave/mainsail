@@ -7,7 +7,6 @@ import {
     blankLineStart,
     indent,
     dedent,
-    newlineBracketed,
 } from './klipperConfigLang.terms.js'
 
 const newline = 10,
@@ -25,8 +24,6 @@ export const newlines = new ExternalTokenizer(
     (input, stack) => {
         if (input.next < 0) {
             input.acceptToken(eof)
-        } else if (stack.context.depth < 0) {
-            if (isLineBreak(input.next)) input.acceptToken(newlineBracketed, 1)
         } else if (isLineBreak(input.peek(-1)) && stack.canShift(blankLineStart)) {
             let spaces = 0
             while (input.next == space || input.next == tab) {
