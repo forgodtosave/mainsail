@@ -22,7 +22,7 @@ export const klipperConfigLang = LRLanguage.define({
                 Parameter: t.keyword,
 
                 Identifier: t.attributeName,
-                LineComment: t.lineComment,
+                Comment: t.lineComment,
                 Boolean: t.bool,
                 String: t.string,
                 Number: t.number,
