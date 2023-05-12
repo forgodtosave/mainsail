@@ -1,6 +1,6 @@
 //@ts-ignore
 import { parser } from './klipperConfigLang.js'
-import { LRLanguage, LanguageSupport, StreamLanguage, foldNodeProp, foldInside} from '@codemirror/language'
+import { LRLanguage, LanguageSupport, StreamLanguage, foldNodeProp, foldInside } from '@codemirror/language'
 import { styleTags, tags as t } from '@lezer/highlight'
 import { parseMixed } from '@lezer/common'
 import { klipper_config } from '../../StreamParserKlipperConfig.js'
@@ -11,12 +11,12 @@ export const klipperConfigLang = LRLanguage.define({
     parser: parser.configure({
         props: [
             foldNodeProp.add({
-                Block: foldInside
-              }),
+                ConfigBlock: foldInside,
+            }),
             styleTags({
                 ImportKeyword: t.keyword,
                 Import: t.keyword,
-                Block: t.namespace,
+                ConfigBlock: t.namespace,
                 BlockType: t.namespace,
 
                 Parameter: t.keyword,
@@ -29,9 +29,9 @@ export const klipperConfigLang = LRLanguage.define({
                 Cords: t.number,
                 Pin: t.atom,
                 VirtualPin: t.atom,
+                FilePath: t.className,
                 Path: t.className,
-                File: t.className,
-                Jinja2: t.typeName
+                Jinja2: t.typeName,
             }),
         ],
         wrap: parseMixed((node) => {

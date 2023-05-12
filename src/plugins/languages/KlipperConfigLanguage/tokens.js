@@ -14,8 +14,6 @@ const newline = 10,
     space = 32,
     tab = 9
 
-const bracketed = new Set([indent])
-
 function isLineBreak(ch) {
     return ch == newline || ch == carriageReturn
 }
@@ -55,8 +53,8 @@ export const indentation = new ExternalTokenizer((input, stack) => {
             chars++
         }
         if (depth != cDepth && input.next != newline && input.next != carriageReturn) {
-            if (depth < cDepth) input.acceptToken(Dedent, -chars)
-            else input.acceptToken(Indent)
+            if (depth < cDepth) input.acceptToken(dedent, -chars)
+            else input.acceptToken(indent)
         }
     }
 })
@@ -78,8 +76,8 @@ function countIndent(space) {
 
 export const trackIndent = new ContextTracker({
     start: topIndent,
-    reduce(context, term) {
-        return context.depth < 0 && bracketed.has(term) ? context.parent : context
+    reduce(context) {
+        return context.depth < 0 ? context.parent : context
     },
     shift(context, term, stack, input) {
         if (term == indent) return new IndentLevel(context, countIndent(input.read(input.pos, stack.pos)))
