@@ -16,7 +16,7 @@ export const
   Path = 9,
   Test = 10,
   Identifier = 11,
-  Blob = 12,
+  TestBody = 12,
   SimpleStatement = 13,
   Parameter = 14,
   Pin = 15,

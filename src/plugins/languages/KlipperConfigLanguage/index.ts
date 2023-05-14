@@ -11,7 +11,16 @@ export const klipperConfigLang = LRLanguage.define({
     parser: parser.configure({
         props: [
             foldNodeProp.add({
-                ConfigBlock: foldInside,
+                ConfigBlock(tree) { 
+                    var node = tree.firstChild
+                    if (node == null) return null
+                    while (node.type.name != 'Body') {
+                        node = node.nextSibling 
+                        if (node == null) return null
+                    }
+                    console.log(tree.type.name, tree.firstChild?.type.name, tree.firstChild?.nextSibling?.type.name)
+                    return { from: node.from -1, to: tree.to - 2 }
+                },
             }),
             styleTags({
                 ImportKeyword: t.keyword,
