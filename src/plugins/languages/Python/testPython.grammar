@@ -260,7 +260,7 @@
   
     formatStringSpec { FormatSpec { ":" (formatStringSpecChars | FormatReplacement<"{">)* } "}" }
   
-    blankLine {
+    BlankLine {
       blankLineStart space? Comment? newline
     }
   }
