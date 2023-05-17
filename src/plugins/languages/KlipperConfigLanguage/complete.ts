@@ -1,30 +1,78 @@
 import { CompletionContext } from '@codemirror/autocomplete'
 import { syntaxTree } from '@codemirror/language'
 
-const parameterOptions = ['serial', 'baud', 'canbus_uuid', 'canbus_interface', 'restart_method'].map((tag) => ({
+const blockTypeOptions = ['mcu', 'printer', 'adxl345', 'resonance_tester', 'stepper_x'].map((tag) => ({
+    label: tag,
+    type: 'namespace',
+}))
+const mcuParameterOptions = ['serial', 'baud', 'canbus_uuid', 'canbus_interface', 'restart_method'].map((tag) => ({
+    label: tag + ': ',
+    type: 'keyword',
+}))
+const printerParameterOptions = ['kinematics', 'max_velocity', 'max_accel', 'max_z_velocity', 'max_z_accel'].map(
+    (tag) => ({
+        label: tag + ': ',
+        type: 'keyword',
+    })
+)
+const adxl345Options = ['cs_pin'].map((tag) => ({
     label: tag + ': ',
     type: 'keyword',
 }))
 
-export function klipperConfigCompletionSource(context: CompletionContext) {
-    let parent = syntaxTree(context.state).resolveInner(context.pos, -1)
-    if (parent == null) return null
-    let parent0 = parent
-    while (parent.type.name != 'Body') {
-        if (parent.parent == null) return null
-        parent = parent.parent
-    }
-    let sibling = parent.prevSibling
-    if (sibling == null) return null
-    let blocktype = context.state.sliceDoc(sibling.from, sibling.to)
 
-    if (blocktype == 'mcu') {
-        let textBefore = context.state.sliceDoc(parent0.from, context.pos)
-        let tagBefore = /\w*$/.exec(textBefore)
+export function klipperConfigCompletionSource(context: CompletionContext) {
+    const parent = syntaxTree(context.state).resolveInner(context.pos, -1)
+    if (!parent) return null
+    const tagBefore = getTagBefore(context.state, parent.from, context.pos)
+
+    if (parent.type.name === 'Parameter') {
+        const typeNode = findTypeNode(parent)
+        if (!typeNode) return null
+        const blocktype = context.state.sliceDoc(typeNode.from, typeNode.to)
+        const options = getOptionsByBlockType(blocktype)
         return {
-            from: tagBefore ? parent0.from + tagBefore.index : context.pos,
-            options: parameterOptions,
+            from: tagBefore ? parent.from + tagBefore.index : context.pos,
+            options: options,
             validFor: /^(\w*)?$/,
         }
-    } else return null
+    }
+
+    if (parent.parent?.type.name === 'ConfigBlock') {
+        return {
+            from: tagBefore ? parent.from + tagBefore.index : context.pos,
+            options: blockTypeOptions,
+            validFor: /^(\w*)?$/,
+        }
+    }
+
+    return null
+}
+
+function findTypeNode(node) {
+    while (node) {
+        if (node.type.name === 'ConfigBlock') {
+            return node.firstChild
+        }
+        node = node.parent
+    }
+    return null
+}
+
+function getTagBefore(state, from, pos) {
+    const textBefore = state.sliceDoc(from, pos)
+    return /\w*$/.exec(textBefore)
+}
+
+function getOptionsByBlockType(blocktype) {
+    switch (blocktype) {
+        case 'mcu':
+            return mcuParameterOptions
+        case 'printer':
+            return printerParameterOptions
+        case 'adxl345':
+            return adxl345Options
+        default:
+            return null
+    }
 }
