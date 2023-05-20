@@ -20,6 +20,7 @@ import { indentWithTab } from '@codemirror/commands'
 import { json } from '@codemirror/lang-json'
 import { css } from '@codemirror/lang-css'
 import { klipperConfig } from '../../plugins/languages/KlipperConfigLanguage/index'
+import { klipperConfigLint } from '../../plugins/languages/KlipperConfigLanguage/lint'
 import { python } from '../../plugins/languages/Python/index'
 import { logTree } from '../../plugins/languages/printLezerTree'
 
@@ -102,6 +103,7 @@ export default class Codemirror extends Mixins(BaseMixin) {
         const extensions = [
             basicSetup,
             mainsailTheme,
+            klipperConfigLint,
             keymap.of([indentWithTab]),
             EditorView.updateListener.of((update) => {
                 this.content = update.state?.doc.toString()
