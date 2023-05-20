@@ -1,5 +1,7 @@
 import { CompletionContext } from '@codemirror/autocomplete'
 import { syntaxTree } from '@codemirror/language'
+import { EditorState } from '@codemirror/state'
+import { SyntaxNode } from '@lezer/common'
 
 const blockTypeOptions = ['mcu', 'printer', 'adxl345', 'resonance_tester', 'stepper_x'].map((tag) => ({
     label: tag,
@@ -19,7 +21,6 @@ const adxl345Options = ['cs_pin'].map((tag) => ({
     label: tag + ': ',
     type: 'keyword',
 }))
-
 
 export function klipperConfigCompletionSource(context: CompletionContext) {
     const parent = syntaxTree(context.state).resolveInner(context.pos, -1)
@@ -49,7 +50,7 @@ export function klipperConfigCompletionSource(context: CompletionContext) {
     return null
 }
 
-function findTypeNode(node) {
+function findTypeNode(node: SyntaxNode | null) {
     while (node) {
         if (node.type.name === 'ConfigBlock') {
             return node.firstChild
@@ -59,12 +60,12 @@ function findTypeNode(node) {
     return null
 }
 
-function getTagBefore(state, from, pos) {
+function getTagBefore(state: EditorState, from: number, pos: number) {
     const textBefore = state.sliceDoc(from, pos)
     return /\w*$/.exec(textBefore)
 }
 
-function getOptionsByBlockType(blocktype) {
+function getOptionsByBlockType(blocktype: string) {
     switch (blocktype) {
         case 'mcu':
             return mcuParameterOptions
