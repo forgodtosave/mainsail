@@ -1,5 +1,4 @@
-//@ts-ignore
-import { parser } from './klipperConfig.grammar'
+import { parser } from '../parser/klipperConfigParser.js'
 import {
     LRLanguage,
     LanguageSupport,
@@ -9,7 +8,7 @@ import {
     indentNodeProp,
 } from '@codemirror/language'
 import { parseMixed } from '@lezer/common'
-import { klipper_config } from '../../StreamParserKlipperConfig.js'
+import { klipper_config } from '../../../StreamParserKlipperConfig'
 import { klipperConfigCompletionSource } from './complete.js'
 
 const jinja2Parser = StreamLanguage.define(klipper_config).parser
