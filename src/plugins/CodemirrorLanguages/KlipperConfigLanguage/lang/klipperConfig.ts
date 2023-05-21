@@ -1,15 +1,13 @@
 //@ts-ignore
-import { parser } from './klipperConfigLang.js'
+import { parser } from './klipperConfig.grammar'
 import {
     LRLanguage,
     LanguageSupport,
     StreamLanguage,
     foldNodeProp,
-    flatIndent,
     continuedIndent,
     indentNodeProp,
 } from '@codemirror/language'
-import { styleTags, tags as t } from '@lezer/highlight'
 import { parseMixed } from '@lezer/common'
 import { klipper_config } from '../../StreamParserKlipperConfig.js'
 import { klipperConfigCompletionSource } from './complete.js'
