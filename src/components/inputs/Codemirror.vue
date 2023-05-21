@@ -19,10 +19,10 @@ import { gcode } from '@/plugins/StreamParserGcode'
 import { indentWithTab } from '@codemirror/commands'
 import { json } from '@codemirror/lang-json'
 import { css } from '@codemirror/lang-css'
-import { klipperConfig } from '../../plugins/languages/KlipperConfigLanguage/index'
-import { klipperConfigLint } from '../../plugins/languages/KlipperConfigLanguage/lint'
-import { python } from '../../plugins/languages/Python/index'
-import { logTree } from '../../plugins/languages/printLezerTree'
+import { klipperConfig } from '../../plugins/CodemirrorLanguages/KlipperConfigLanguage/index'
+import { klipperConfigLint } from '../../plugins/CodemirrorLanguages/KlipperConfigLanguage/lint'
+import { python } from '../../plugins/CodemirrorLanguages/Python/index'
+import { logTree } from '../../plugins/CodemirrorLanguages/printLezerTree'
 
 import {syntaxTree} from "@codemirror/language"
 
