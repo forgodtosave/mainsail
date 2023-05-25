@@ -16,9 +16,9 @@ export const klipperConfigHighlighting = styleTags({
     Number: t.number,
     Cords: t.number,
     Pin: t.atom,
+    Pins: t.atom,
     VirtualPin: t.atom,
     FilePath: t.className,
     Path: t.className,
     File: t.className,
-    Jinja2: t.typeName,
 })
