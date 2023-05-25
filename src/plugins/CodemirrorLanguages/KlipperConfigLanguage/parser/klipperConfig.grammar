@@ -8,10 +8,10 @@ ConfigBlock {"[" BlockType Identifier? "]" newline Body }
 Body { Option+ }
 Option { Parameter ":" Value | GcodeKeyword ":" Jinja2 }
 
-Value { valueBlock<value> }
-Jinja2 { valueBlock<jinja2> }
+Value { value (newline | eof) | newline valueBlock<value> }
+Jinja2 { jinja2 (newline | eof) | newline valueBlock<jinja2> }
 
-valueBlock<content> { content (newline | eof) | newline indent (content newline)+ (dedent | eof) }
+valueBlock<content> { indent (content newline | valueBlock<content>)+ (dedent | eof) }
 
 value { Pin | Pins | VirtualPin | Cords | Number | String | Boolean | FilePath | Path }
 Pin { pin }
