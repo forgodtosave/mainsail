@@ -1,12 +1,5 @@
 import { parser } from '../parser/klipperConfigParser.js'
-import {
-    LRLanguage,
-    LanguageSupport,
-    StreamLanguage,
-    foldNodeProp,
-    continuedIndent,
-    indentNodeProp,
-} from '@codemirror/language'
+import { LRLanguage, LanguageSupport, StreamLanguage, foldNodeProp } from '@codemirror/language'
 import { parseMixed } from '@lezer/common'
 import { klipper_config } from '../../../StreamParserKlipperConfig'
 import { klipperConfigCompletionSource } from './complete.js'
