@@ -29,12 +29,15 @@ File {string "." string }
 
 
 
+@context trackIndent from "./tokens.js"
+@external tokens indentation from "./tokens.js" { indent, dedent }
+@external tokens newlines from "./tokens.js" { newline, blankLineStart, eof }
 
 @tokens {
   ImportKeyword{ "include" }
   GcodeKeyword{ "gcode" }
   Identifier { $[a-zA-Z0-9_.\-]+ }
-  Parameter { $[a-zA-Z_]+ }
+  Parameter { $[a-zA-Z0-9_]+ }
   
   string { $[ a-zA-Z0-9_\-]+ }
   jinja2 { $[ a-zA-Z0-9_.\-"'{}%=]+ }
@@ -58,10 +61,6 @@ File {string "." string }
   @precedence { number, Pin, Boolean, ImportKeyword, string }
   @precedence { GcodeKeyword, Parameter}
 }
-
-@context trackIndent from "./tokens.js"
-@external tokens indentation from "./tokens.js" { indent, dedent }
-@external tokens newlines from "./tokens.js" { newline, blankLineStart, eof }
 
 @external propSource klipperConfigHighlighting from "./highlight"
 

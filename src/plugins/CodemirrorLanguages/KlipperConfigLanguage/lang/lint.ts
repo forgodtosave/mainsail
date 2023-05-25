@@ -6,7 +6,7 @@ export const klipperConfigLint = linter((view) => {
     syntaxTree(view.state)
         .cursor()
         .iterate((node) => {
-            if (node.name == 'Number') {
+            if (node.name == '') {
                 diagnostics.push({
                     from: node.from,
                     to: node.to,
@@ -22,12 +22,12 @@ export const klipperConfigLint = linter((view) => {
                     ],
                 })
             } else {
-                if (node.type.isError) {
+                if (node.type.isError && !view.state.sliceDoc(node.from, node.to).includes('\n')) {
                     diagnostics.push({
                         from: node.from,
                         to: node.to,
                         severity: 'error',
-                        message: 'Syntax error',
+                        message: 'Syntax error:\n ' + view.state.sliceDoc(node.from, node.to),
                     })
                 }
             }
