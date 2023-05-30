@@ -372,6 +372,20 @@
                     <v-icon class="mr-1">{{ mdiContentCopy }}</v-icon>
                     {{ $t('Files.Duplicate') }}
                 </v-list-item>
+                <v-list-item
+                    v-if="!contextMenu.item.isDirectory && !contextMenu.item.isPined"
+                    :disabled="!isGcodeFile(contextMenu.item)"
+                    @click="pin(contextMenu.item, true)">
+                    <v-icon class="mr-1">{{ mdiPin }}</v-icon>
+                    {{ 'Pin' }}
+                </v-list-item>
+                <v-list-item
+                    v-if="!contextMenu.item.isDirectory && contextMenu.item.isPined"
+                    :disabled="!isGcodeFile(contextMenu.item)"
+                    @click="pin(contextMenu.item, false)">
+                    <v-icon class="mr-1">{{ mdiPinOff }}</v-icon>
+                    {{ 'un-Pin' }}
+                </v-list-item>
                 <v-list-item v-if="!contextMenu.item.isDirectory" class="red--text" @click="removeFile">
                     <v-icon class="mr-1" color="error">{{ mdiDelete }}</v-icon>
                     {{ $t('Files.Delete') }}
@@ -619,6 +633,8 @@ import {
     mdiFolderPlus,
     mdiFolderUpload,
     mdiMagnify,
+    mdiPin,
+    mdiPinOff,
     mdiPlay,
     mdiPlaylistPlus,
     mdiRefresh,
@@ -687,6 +703,8 @@ export default class GcodefilesPanel extends Mixins(BaseMixin, ControlMixin) {
     mdiCog = mdiCog
     mdiFolderUpload = mdiFolderUpload
     mdiFolder = mdiFolder
+    mdiPin = mdiPin
+    mdiPinOff = mdiPinOff
     mdiPlay = mdiPlay
     mdiPlaylistPlus = mdiPlaylistPlus
     mdiFire = mdiFire
@@ -727,6 +745,7 @@ export default class GcodefilesPanel extends Mixins(BaseMixin, ControlMixin) {
         y: 0,
         item: {
             isDirectory: false,
+            idPined: false,
             filename: '',
             permissions: '',
             modified: new Date(),
@@ -1373,6 +1392,10 @@ export default class GcodefilesPanel extends Mixins(BaseMixin, ControlMixin) {
         )
     }
 
+    pin(item: FileStateGcodefile, bool: boolean) {
+        item.isPined = bool
+    }
+
     removeFile() {
         this.$socket.emit(
             'server.files.delete_file',
@@ -1408,6 +1431,7 @@ export default class GcodefilesPanel extends Mixins(BaseMixin, ControlMixin) {
         e.preventDefault()
         this.draggingFile.item = {
             isDirectory: false,
+            isPined: false,
             filename: '',
             permissions: '',
             modified: new Date(),

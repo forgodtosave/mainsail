@@ -158,6 +158,9 @@ export const sortFiles = (items: FileStateFile[] | null, sortBy: string[], sortD
         // Deal with descending order
         if (sortDescSingle) items.reverse()
 
+        // Then make sure pined files come first
+        items.sort((a: any, b: any) => (a.isPined === b.isPined ? 0 : a.isPined ? -1 : 1))
+
         // Then make sure directories come first
         items.sort((a: any, b: any) => (a.isDirectory === b.isDirectory ? 0 : a.isDirectory ? -1 : 1))
     }

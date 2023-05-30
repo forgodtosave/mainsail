@@ -78,6 +78,7 @@ export const mutations: MutationTree<FileState> = {
 
                 parent.push({
                     isDirectory: false,
+                    isPined: false,
                     filename: filename,
                     modified: modified,
                     permissions: payload.item.permissions,

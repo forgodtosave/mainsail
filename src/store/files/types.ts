@@ -15,6 +15,7 @@ export interface FileState {
 
 export interface FileStateFile {
     isDirectory: boolean
+    isPined?: boolean
     filename: string
     modified: Date
     permissions: string
@@ -39,6 +40,7 @@ export interface FileStateFile {
     metadataPulled?: boolean
     metadataRequested?: boolean
     size?: number
+    pined?: boolean
     [key: string]: any
 }
 
