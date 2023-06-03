@@ -2,6 +2,7 @@ import { CompletionContext } from '@codemirror/autocomplete'
 import { syntaxTree } from '@codemirror/language'
 import { EditorState } from '@codemirror/state'
 import { SyntaxNode } from '@lezer/common'
+import { parseConfigMd, printConfigMd } from '../ref-parser/ref-parser'
 
 const blockTypeOptions = ['mcu', 'printer', 'adxl345', 'resonance_tester', 'stepper_x'].map((tag) => ({
     label: tag,
@@ -23,6 +24,8 @@ const adxl345Options = ['cs_pin'].map((tag) => ({
 }))
 
 export function klipperConfigCompletionSource(context: CompletionContext) {
+    printConfigMd()
+
     const parent = syntaxTree(context.state).resolveInner(context.pos, -1)
     if (!parent) return null
     const tagBefore = getTagBefore(context.state, parent.from, context.pos)
