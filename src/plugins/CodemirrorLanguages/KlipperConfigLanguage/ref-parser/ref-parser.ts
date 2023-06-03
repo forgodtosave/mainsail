@@ -1,19 +1,19 @@
 interface Parameter {
     name: string
-    value: number | string | 'any'
+    value: string
+    isOptional: boolean
+    tooltip?: string
 }
 
 interface ConfigBlock {
     type: string
     requiresName: boolean
     parameters: Parameter[]
-    optionalParameters: Parameter[]
 }
 
-interface dependentParameters {
+interface DependentParameters {
     triggerParameter: string
     parameters: Parameter[]
-    optionalParameters: Parameter[]
 }
 
 function parseValue(value: string, parameterName: string): string {
@@ -23,6 +23,8 @@ function parseValue(value: string, parameterName: string): string {
         return 'lcdType'
     } else if (parameterName === 'sensor_type') {
         return 'sensorType'
+    } else if (parameterName.includes('gcode')) {
+        return 'gcode'
     } else if (parameterName.includes('pin')) {
         return 'pin'
     } else if (value === '') {
@@ -38,11 +40,12 @@ function parseValue(value: string, parameterName: string): string {
     }
 }
 
-export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<string, dependentParameters>] {
+export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<string, DependentParameters>] {
     const lines = text.split('\n')
     const configBlockMap: Map<string, ConfigBlock> = new Map()
-    const dependentParametersMap: Map<string, dependentParameters> = new Map()
+    const dependentParametersMap: Map<string, DependentParameters> = new Map()
     let currentConfigBlock: ConfigBlock | null = null
+    let currentDependentParameters: DependentParameters | null = null
     let isBlock = false
 
     for (const line of lines) {
@@ -50,9 +53,8 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
 
         if (trimmedLine === '```') {
             isBlock = !isBlock
-            // if Block end is reached, add currentConfigBlock to configBlockMap
+            // If Block end is reached, add currentConfigBlock to configBlockMap
             if (!isBlock) {
-                // only if not null and not already in map (exepct for old Block reqiures but new Block not (old block is probably ony for extra Block like my_extra_mcu))
                 if (
                     currentConfigBlock != null &&
                     (!configBlockMap.has(currentConfigBlock.type) ||
@@ -61,11 +63,15 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                     configBlockMap.set(currentConfigBlock.type, currentConfigBlock)
                 }
                 currentConfigBlock = null
+
+                if (currentDependentParameters != null) {
+                    dependentParametersMap.set(currentDependentParameters.triggerParameter, currentDependentParameters)
+                }
+                currentDependentParameters = null
             }
-        // if in Block
         } else if (isBlock) {
-            const configBlockTypeMatch = trimmedLine.match(/^\[(\w+(\s\w+)?)\]$/)
-            // only new current block if first match in a Block for [stepper] in [printer] problem
+            const configBlockTypeMatch = trimmedLine.match(/^\[(\w+(\s\w+)*)\]$/)
+            // Only new current block if first match in a Block for [stepper] in [printer] problem
             if (configBlockTypeMatch && currentConfigBlock == null) {
                 const configBlockHeader = configBlockTypeMatch[1]
                 const [type, name] = configBlockHeader.split(' ')
@@ -73,24 +79,48 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                     type,
                     requiresName: !!name,
                     parameters: [],
-                    optionalParameters: [],
                 }
             } else if (currentConfigBlock) {
                 const parameterMatch = trimmedLine.match(/^(#?(\w+):)(.*)$/)
                 if (parameterMatch) {
                     const [, parameterWithColon, parameterName, value] = parameterMatch
                     const valueType = parseValue(value.trim(), parameterName)
-                    const parameter = {
+                    const parameter: Parameter = {
                         name: parameterName,
                         value: valueType,
+                        tooltip: findTooltip(lines, line),
+                        isOptional: parameterWithColon.startsWith('#'),
                     }
-                    if (parameterWithColon.startsWith('#')) {
-                        currentConfigBlock.optionalParameters.push(parameter)
-                    } else {
-                        currentConfigBlock.parameters.push(parameter)
-                    }
+                    currentConfigBlock.parameters.push(parameter)
+
                     if (parameterName === 'kinematics' && value.trim() !== '') {
                         currentConfigBlock.type += '-' + value.trim()
+                    }
+                    if (parameterName === 'lcd_type' && value.trim() !== '') {
+                        currentConfigBlock.type += '-' + value.trim()
+                    }
+                }
+                // if no [Block] but parameters
+            } else {
+                const parameterMatch = trimmedLine.match(/^(#?(\w+):)(.*)$/)
+                // if parameter found
+                if (parameterMatch) {
+                    const [, parameterWithColon, parameterName, value] = parameterMatch
+                    const valueType = parseValue(value.trim(), parameterName)
+                    const parameter: Parameter = {
+                        name: parameterName,
+                        value: valueType,
+                        tooltip: findTooltip(lines, line),
+                        isOptional: parameterWithColon.startsWith('#'),
+                    }
+
+                    if (currentDependentParameters == null) {
+                        currentDependentParameters = {
+                            triggerParameter: value.trim() === '' ? parameterName : parameterName + '-' + value.trim(),
+                            parameters: [parameter],
+                        }
+                    } else {
+                        currentDependentParameters.parameters.push(parameter)
                     }
                 }
             }
@@ -100,16 +130,50 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
     return [configBlockMap, dependentParametersMap]
 }
 
+function findTooltip(lines: string[], currentLine: string): string {
+    const nextLines = lines.slice(lines.indexOf(currentLine) + 1);
+    const tooltipLines: string[] = [];
+  
+    for (const nextLine of nextLines) {
+      const trimmedNextLine = nextLine.trim();
+      if (trimmedNextLine.startsWith('#   ')) {
+        tooltipLines.push(trimmedNextLine.substring(3).trim());
+      } else if (trimmedNextLine.startsWith('#') && !trimmedNextLine.startsWith('#   ')) {
+        // Stop collecting lines if a non-tooltip comment is encountered
+        break;
+      }
+    }
+  
+    return tooltipLines.join(' ').trim();
+  }
+
+
+
+
 export function printConfigMd() {
-    let parsedMd = parseConfigMd(exampleText)[0]
+    let [parsedMd, dependentParameters] = parseConfigMd(exampleText)
     parsedMd.forEach((configBlock) => {
         let msg = ''
         msg += `[${configBlock.type}]\n`
         configBlock.parameters.forEach((parameter) => {
-            msg += `|- ${parameter.name}: ${parameter.value}\n`
+            if (parameter.isOptional) {
+                msg += `|- ${parameter.name}: ${parameter.value}  (${parameter.tooltip})\n`
+            } else {
+                msg += `|- ?${parameter.name}: ${parameter.value}\n`
+            }
         })
-        configBlock.optionalParameters.forEach((parameter) => {
-            msg += `|- ?${parameter.name}: ${parameter.value}\n`
+
+        console.log(msg)
+    })
+    dependentParameters.forEach((dependentParameter) => {
+        let msg = ''
+        msg += `${dependentParameter.triggerParameter}\n`
+        dependentParameter.parameters.forEach((parameter) => {
+            if (parameter.isOptional) {
+                msg += `|- ${parameter.name}: ${parameter.value}  (${parameter.tooltip})\n`
+            } else {
+                msg += `|- ?${parameter.name}: ${parameter.value}\n`
+            }
         })
         console.log(msg)
     })
