@@ -78,6 +78,7 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                     requiresName: !!name,
                     parameters: [],
                 }
+                // if under a [Block]
             } else if (currentConfigBlock) {
                 const parameterMatch = trimmedLine.match(/^(#?(\w+):)(.*)$/)
                 if (parameterMatch) {
@@ -91,14 +92,16 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                     }
                     currentConfigBlock.parameters.push(parameter)
 
-                    if (parameterName === 'kinematics' && value.trim() !== '') {
-                        currentConfigBlock.type += '-' + value.trim()
-                    }
-                    if (parameterName === 'lcd_type' && value.trim() !== '') {
-                        currentConfigBlock.type += '-' + value.trim()
+                    //if config Block is duplicated but shows special settings for Blocks like [display] or [printer]
+                    if ((parameterName === 'kinematics' || parameterName === 'lcd_type') && value.trim() !== '') {
+                        currentDependentParameters = {
+                            triggerParameter: value.trim() === '' ? parameterName : parameterName + ':' + value.trim(),
+                            parameters: currentConfigBlock.parameters,
+                        }
+                        currentConfigBlock = null
                     }
                 }
-                // if no [Block] but parameters
+                // if no [Block]
             } else {
                 const parameterMatch = trimmedLine.match(/^(#?(\w+):)(.*)$/)
                 // if parameter found
@@ -111,10 +114,10 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                         tooltip: findTooltip(lines, line),
                         isOptional: parameterWithColon.startsWith('#'),
                     }
-
+                    // if parameter is the first ins this code section it becomes the trigger for dependent parameters
                     if (currentDependentParameters == null) {
                         currentDependentParameters = {
-                            triggerParameter: value.trim() === '' ? parameterName : parameterName + '-' + value.trim(),
+                            triggerParameter: value.trim() === '' ? parameterName : parameterName + ':' + value.trim(),
                             parameters: [parameter],
                         }
                     } else {
@@ -129,24 +132,19 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
 }
 
 function findTooltip(lines: string[], currentLine: string): string {
-    const nextLines = lines.slice(lines.indexOf(currentLine) + 1);
-    const tooltipLines: string[] = [];
-  
+    const nextLines = lines.slice(lines.indexOf(currentLine) + 1)
+    const tooltipLines: string[] = []
     for (const nextLine of nextLines) {
-      const trimmedNextLine = nextLine.trim();
-      if (trimmedNextLine.startsWith('#   ')) {
-        tooltipLines.push(trimmedNextLine.substring(3).trim());
-      } else if (trimmedNextLine.startsWith('#') && !trimmedNextLine.startsWith('#   ')) {
-        // Stop collecting lines if a non-tooltip comment is encountered
-        break;
-      }
+        const trimmedNextLine = nextLine.trim()
+        if (trimmedNextLine.startsWith('#   ')) {
+            tooltipLines.push(trimmedNextLine.substring(3).trim())
+        } else if (trimmedNextLine.startsWith('#') && !trimmedNextLine.startsWith('#   ')) {
+            // Stop collecting lines if a non-tooltip comment is encountered
+            break
+        }
     }
-  
-    return tooltipLines.join(' ').trim();
-  }
-
-
-
+    return tooltipLines.join(' ').trim()
+}
 
 export function printConfigMd() {
     const [parsedMd, dependentParameters] = parseConfigMd(exampleText)
@@ -160,7 +158,6 @@ export function printConfigMd() {
                 msg += `|- ?${parameter.name}: ${parameter.value}\n`
             }
         })
-
         console.log(msg)
     })
     dependentParameters.forEach((dependentParameter) => {
@@ -175,7 +172,6 @@ export function printConfigMd() {
         })
         console.log(msg)
     })
-    console.log(parsedMd)
 }
 
 // Example usage:
