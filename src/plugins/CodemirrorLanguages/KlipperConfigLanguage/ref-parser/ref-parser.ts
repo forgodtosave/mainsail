@@ -2,7 +2,7 @@ interface Parameter {
     name: string
     value: string
     isOptional: boolean
-    tooltip?: string
+    tooltip: string
 }
 
 interface ConfigBlock {
@@ -33,8 +33,6 @@ function parseValue(value: string, parameterName: string): string {
         return 'number'
     } else if (value.match(/^\^?!?PE\d\d?$/)) {
         return 'pin'
-    } else if (value.match(/^\/?(\w+\/)*\w+\.\w+$/)) {
-        return 'path'
     } else {
         return 'string'
     }
@@ -151,7 +149,7 @@ function findTooltip(lines: string[], currentLine: string): string {
 
 
 export function printConfigMd() {
-    let [parsedMd, dependentParameters] = parseConfigMd(exampleText)
+    const [parsedMd, dependentParameters] = parseConfigMd(exampleText)
     parsedMd.forEach((configBlock) => {
         let msg = ''
         msg += `[${configBlock.type}]\n`
@@ -177,6 +175,7 @@ export function printConfigMd() {
         })
         console.log(msg)
     })
+    console.log(parsedMd)
 }
 
 // Example usage:
