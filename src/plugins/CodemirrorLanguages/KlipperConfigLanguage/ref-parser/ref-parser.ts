@@ -11,18 +11,100 @@ interface ConfigBlock {
     parameters: Parameter[]
 }
 
-interface DependentParameters {
+interface CondParamBlock {
     triggerParameter: string
     parameters: Parameter[]
 }
 
+export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<string, CondParamBlock>] {
+    const lines = text.split('\n')
+    const configBlockMap: Map<string, ConfigBlock> = new Map()
+    const depParamBlockMap: Map<string, CondParamBlock> = new Map()
+    let currentConfigBlock: ConfigBlock | null = null
+    let currentCondParamBlock: CondParamBlock | null = null
+    let isCodeBlock = false
+
+    for (const line of lines) {
+        const trimmedLine = line.trim()
+
+        // save current currentBlock if end of the codeBlock is reached or if new block is started
+        if ((trimmedLine === '```' && !isCodeBlock) || (trimmedLine.startsWith('[') && trimmedLine.endsWith(']'))) {
+            if (currentConfigBlock || currentCondParamBlock) {
+                if (currentConfigBlock) {
+                    if (
+                        !configBlockMap.has(currentConfigBlock.type) ||
+                        (configBlockMap.get(currentConfigBlock.type)?.requiresName && !currentConfigBlock.requiresName)
+                    ) {
+                        configBlockMap.set(currentConfigBlock.type, currentConfigBlock)
+                        currentConfigBlock = null
+                    }
+                } else if (currentCondParamBlock) {
+                    depParamBlockMap.set(currentCondParamBlock.triggerParameter, currentCondParamBlock)
+                    currentCondParamBlock = null
+                }
+            }
+        }
+        // start new codeBlock or ends it
+        if (trimmedLine === '```') isCodeBlock = !isCodeBlock
+
+        // parse current config line
+        if (isCodeBlock) {
+            if (trimmedLine.startsWith('[') && trimmedLine.endsWith(']')) {
+                const [type, name] = trimmedLine.substring(1, trimmedLine.length - 1).split(' ')
+                currentConfigBlock = {
+                    type,
+                    requiresName: !!name,
+                    parameters: [],
+                }
+            } else if (currentConfigBlock) {
+                const parameterMatch = trimmedLine.match(/^(#?(\w+):)(.*)$/)
+                if (parameterMatch) {
+                    const [, parameterWithColon, parameterName, value] = parameterMatch
+                    const parameter: Parameter = {
+                        name: parameterName,
+                        value: parseValue(value.trim(), parameterName),
+                        tooltip: findTooltip(lines, line),
+                        isOptional: parameterWithColon.startsWith('#'),
+                    }
+                    if (value.trim() !== '' && (parameterName === 'kinematics' || parameterName === 'lcd_type')) {
+                        currentCondParamBlock = {
+                            triggerParameter: parameterName + ':' + value.trim(),
+                            parameters: [],
+                        }
+                        currentConfigBlock = null
+                    } else {
+                        currentConfigBlock.parameters.push(parameter)
+                    }
+                }
+            } else {
+                const parameterMatch = trimmedLine.match(/^(#?(\w+):)(.*)$/)
+                if (parameterMatch) {
+                    const [, parameterWithColon, parameterName, value] = parameterMatch
+                    const parameter: Parameter = {
+                        name: parameterName,
+                        value: parseValue(value.trim(), parameterName),
+                        tooltip: findTooltip(lines, line),
+                        isOptional: parameterWithColon.startsWith('#'),
+                    }
+                    if (currentCondParamBlock == null) {
+                        currentCondParamBlock = {
+                            triggerParameter: value.trim() === '' ? parameterName : parameterName + ':' + value.trim(),
+                            parameters: [parameter],
+                        }
+                    } else {
+                        currentCondParamBlock.parameters.push(parameter)
+                    }
+                }
+            }
+        }
+    }
+
+    return [configBlockMap, depParamBlockMap]
+}
+
 function parseValue(value: string, parameterName: string): string {
-    if (parameterName === 'kinematics') {
-        return 'kinematicType'
-    } else if (parameterName === 'lcd_type') {
-        return 'lcdType'
-    } else if (parameterName === 'sensor_type') {
-        return 'sensorType'
+    if (parameterName === 'kinematics' || parameterName === 'lcd_type' || parameterName === 'sensor_type') {
+        return parameterName + '-keyword'
     } else if (parameterName.includes('gcode')) {
         return 'gcode'
     } else if (parameterName.includes('pin')) {
@@ -31,104 +113,11 @@ function parseValue(value: string, parameterName: string): string {
         return 'any'
     } else if (!isNaN(parseFloat(value))) {
         return 'number'
-    } else if (value.match(/^\^?!?PE\d\d?$/)) {
+    } else if (value.match(/^(\^?!?PE\d\d?)|([^\s:]*:[^\s:]*)$/)) {
         return 'pin'
     } else {
         return 'string'
     }
-}
-
-export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<string, DependentParameters>] {
-    const lines = text.split('\n')
-    const configBlockMap: Map<string, ConfigBlock> = new Map()
-    const dependentParametersMap: Map<string, DependentParameters> = new Map()
-    let currentConfigBlock: ConfigBlock | null = null
-    let currentDependentParameters: DependentParameters | null = null
-    let isBlock = false
-
-    for (const line of lines) {
-        const trimmedLine = line.trim()
-
-        if (trimmedLine === '```') {
-            isBlock = !isBlock
-            // If Block end is reached, add currentConfigBlock to configBlockMap
-            if (!isBlock) {
-                if (
-                    currentConfigBlock != null &&
-                    (!configBlockMap.has(currentConfigBlock.type) ||
-                        (configBlockMap.get(currentConfigBlock.type)?.requiresName && !currentConfigBlock.requiresName))
-                ) {
-                    configBlockMap.set(currentConfigBlock.type, currentConfigBlock)
-                }
-                currentConfigBlock = null
-
-                if (currentDependentParameters != null) {
-                    dependentParametersMap.set(currentDependentParameters.triggerParameter, currentDependentParameters)
-                }
-                currentDependentParameters = null
-            }
-        } else if (isBlock) {
-            const configBlockTypeMatch = trimmedLine.match(/^\[(\w+(\s\w+)*)\]$/)
-            // Only new current block if first match in a Block for [stepper] in [printer] problem
-            if (configBlockTypeMatch && currentConfigBlock == null) {
-                const configBlockHeader = configBlockTypeMatch[1]
-                const [type, name] = configBlockHeader.split(' ')
-                currentConfigBlock = {
-                    type,
-                    requiresName: !!name,
-                    parameters: [],
-                }
-                // if under a [Block]
-            } else if (currentConfigBlock) {
-                const parameterMatch = trimmedLine.match(/^(#?(\w+):)(.*)$/)
-                if (parameterMatch) {
-                    const [, parameterWithColon, parameterName, value] = parameterMatch
-                    const valueType = parseValue(value.trim(), parameterName)
-                    const parameter: Parameter = {
-                        name: parameterName,
-                        value: valueType,
-                        tooltip: findTooltip(lines, line),
-                        isOptional: parameterWithColon.startsWith('#'),
-                    }
-                    currentConfigBlock.parameters.push(parameter)
-
-                    //if config Block is duplicated but shows special settings for Blocks like [display] or [printer]
-                    if ((parameterName === 'kinematics' || parameterName === 'lcd_type') && value.trim() !== '') {
-                        currentDependentParameters = {
-                            triggerParameter: value.trim() === '' ? parameterName : parameterName + ':' + value.trim(),
-                            parameters: currentConfigBlock.parameters,
-                        }
-                        currentConfigBlock = null
-                    }
-                }
-                // if no [Block]
-            } else {
-                const parameterMatch = trimmedLine.match(/^(#?(\w+):)(.*)$/)
-                // if parameter found
-                if (parameterMatch) {
-                    const [, parameterWithColon, parameterName, value] = parameterMatch
-                    const valueType = parseValue(value.trim(), parameterName)
-                    const parameter: Parameter = {
-                        name: parameterName,
-                        value: valueType,
-                        tooltip: findTooltip(lines, line),
-                        isOptional: parameterWithColon.startsWith('#'),
-                    }
-                    // if parameter is the first ins this code section it becomes the trigger for dependent parameters
-                    if (currentDependentParameters == null) {
-                        currentDependentParameters = {
-                            triggerParameter: value.trim() === '' ? parameterName : parameterName + ':' + value.trim(),
-                            parameters: [parameter],
-                        }
-                    } else {
-                        currentDependentParameters.parameters.push(parameter)
-                    }
-                }
-            }
-        }
-    }
-
-    return [configBlockMap, dependentParametersMap]
 }
 
 function findTooltip(lines: string[], currentLine: string): string {
@@ -139,7 +128,6 @@ function findTooltip(lines: string[], currentLine: string): string {
         if (trimmedNextLine.startsWith('#   ')) {
             tooltipLines.push(trimmedNextLine.substring(3).trim())
         } else if (trimmedNextLine.startsWith('#') && !trimmedNextLine.startsWith('#   ')) {
-            // Stop collecting lines if a non-tooltip comment is encountered
             break
         }
     }
@@ -147,27 +135,27 @@ function findTooltip(lines: string[], currentLine: string): string {
 }
 
 export function printConfigMd() {
-    const [parsedMd, dependentParameters] = parseConfigMd(exampleText)
+    const [parsedMd, CondParamBlock] = parseConfigMd(exampleText)
     parsedMd.forEach((configBlock) => {
         let msg = ''
-        msg += `[${configBlock.type}]\n`
+        msg += `[${configBlock.type}]   ${configBlock.requiresName}\n`
         configBlock.parameters.forEach((parameter) => {
             if (parameter.isOptional) {
-                msg += `|- ${parameter.name}: ${parameter.value}  (${parameter.tooltip})\n`
-            } else {
                 msg += `|- ?${parameter.name}: ${parameter.value}\n`
+            } else {
+                msg += `|- ${parameter.name}: ${parameter.value}\n`
             }
         })
         console.log(msg)
     })
-    dependentParameters.forEach((dependentParameter) => {
+    CondParamBlock.forEach((dependentParameter) => {
         let msg = ''
         msg += `${dependentParameter.triggerParameter}\n`
         dependentParameter.parameters.forEach((parameter) => {
             if (parameter.isOptional) {
-                msg += `|- ${parameter.name}: ${parameter.value}  (${parameter.tooltip})\n`
-            } else {
                 msg += `|- ?${parameter.name}: ${parameter.value}\n`
+            } else {
+                msg += `|- ${parameter.name}: ${parameter.value}\n`
             }
         })
         console.log(msg)
