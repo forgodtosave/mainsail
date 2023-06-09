@@ -30,7 +30,7 @@ dependentParameters.forEach((entry) => {
 })
 //Map with all autocompletion-objects for all blocktype
 const blockTypeOptions = Array.from(autocompletionMap.keys()).map((tag) => ({
-    label: tag,
+    label: tag.includes('stepper_') && tag.includes('-') ? tag.split('-')[0] : tag,
     type: 'keyword',
 }))
 
@@ -114,7 +114,7 @@ function editOptions(options: { label: string; type: string; info: string }[], s
         const value = childNode.lastChild
         if (!parameter || !value) continue
         const parameterName = state.sliceDoc(parameter.from, parameter.to)
-        allreadyUsedOptions.add(parameterName) // save allready used options to remove them later
+        if (parameterName[-1] !== '_') allreadyUsedOptions.add(parameterName) // save allready used options to remove them later (not variable_)
         const valueName = state.sliceDoc(value.from, value.to).replace(/(\r\n|\n|\r)/gm, '')
         const parameterValue = valueName !== '' ? parameterName + ':' + valueName : parameterName
         const mapEntry = dependentParametersMap.get(parameterValue)
@@ -143,7 +143,7 @@ function getPrinterKinematics(state: EditorState, node: SyntaxNode) {
 /* 
 Known Issues:
 - secondary stepper/extruder-names are not suggested (only stepper_z1/extruder1)
-- while typing the block-name the stepper names ar incorrect
+- while typing the block-name the stepper names ar incorrect - fixed?
 - 
 
 */
