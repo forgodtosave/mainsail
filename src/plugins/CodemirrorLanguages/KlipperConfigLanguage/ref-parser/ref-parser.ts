@@ -23,8 +23,10 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
     let currentConfigBlock: ConfigBlock | null = null
     let currentCondParamBlock: CondParamBlock | null = null
     let isCodeBlock = false
+    let printerKinematics = ''
 
-    for (const line of lines) {
+    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+        const line = lines[lineIndex]
         const trimmedLine = line.trim()
 
         // save current currentBlock if end of the codeBlock is reached or if new block is started
@@ -49,13 +51,15 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
 
         // parse current config line
         if (isCodeBlock) {
+            // if [Block]
             if (trimmedLine.startsWith('[') && trimmedLine.endsWith(']')) {
                 const [type, name] = trimmedLine.substring(1, trimmedLine.length - 1).split(' ')
                 currentConfigBlock = {
-                    type,
+                    type: type === 'stepper_a' ? 'stepper_a-' + printerKinematics : type, //because multiple stepper_a blocks exist
                     requiresName: !!name,
                     parameters: [],
                 }
+                // if under a [block] -> Parameter
             } else if (currentConfigBlock) {
                 const parameterMatch = trimmedLine.match(/^(#?(\w+):)(.*)$/)
                 if (parameterMatch) {
@@ -63,10 +67,12 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                     const parameter: Parameter = {
                         name: parameterName,
                         value: parseValue(value.trim(), parameterName),
-                        tooltip: findTooltip(lines, line),
+                        tooltip: findTooltip(lines, lineIndex),
                         isOptional: parameterWithColon.startsWith('#'),
                     }
+                    // for all [blocks] which only exists to specify dependent parameters
                     if (value.trim() !== '' && (parameterName === 'kinematics' || parameterName === 'lcd_type')) {
+                        if (parameterName === 'kinematics') printerKinematics = value.trim()
                         currentCondParamBlock = {
                             triggerParameter: parameterName + ':' + value.trim(),
                             parameters: [],
@@ -76,20 +82,39 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                         currentConfigBlock.parameters.push(parameter)
                     }
                 }
+                // if no [block] but Parameter -> dependent Parameter
             } else {
                 const parameterMatch = trimmedLine.match(/^(#?(\w+):)(.*)$/)
                 if (parameterMatch) {
                     const [, parameterWithColon, parameterName, value] = parameterMatch
+                    const tooltip = findTooltip(lines, lineIndex)
                     const parameter: Parameter = {
                         name: parameterName,
                         value: parseValue(value.trim(), parameterName),
-                        tooltip: findTooltip(lines, line),
+                        tooltip: tooltip,
                         isOptional: parameterWithColon.startsWith('#'),
                     }
                     if (currentCondParamBlock == null) {
-                        currentCondParamBlock = {
-                            triggerParameter: value.trim() === '' ? parameterName : parameterName + ':' + value.trim(),
-                            parameters: [parameter],
+                        const match = tooltip.match(/One of\s+(.+)/)
+                        if (match && match[1]) {
+                            const enumeration = match[1]
+                            console.log(enumeration)
+                            const values = enumeration.match(/"([^"]+)"/g)
+                            console.log(values)
+                            if (values) {
+                                values.forEach((value) => {
+                                    currentCondParamBlock = {
+                                        triggerParameter: parameterName + ':' + value.trim(),
+                                        parameters: [parameter],
+                                    }
+                                })
+                            }
+                        } else {
+                            currentCondParamBlock = {
+                                triggerParameter:
+                                    value.trim() === '' ? parameterName : parameterName + ':' + value.trim(),
+                                parameters: [parameter],
+                            }
                         }
                     } else {
                         currentCondParamBlock.parameters.push(parameter)
@@ -107,24 +132,21 @@ function parseValue(value: string, parameterName: string): string {
         return parameterName + '-keyword'
     } else if (parameterName.includes('gcode')) {
         return 'gcode'
-    } else if (parameterName.includes('pin')) {
+    } else if (parameterName.includes('pin') || value.match(/^(\^?!?PE\d\d?)|([^\s:]*:[^\s:]*)$/)) {
         return 'pin'
-    } else if (value === '') {
-        return 'any'
     } else if (!isNaN(parseFloat(value))) {
         return 'number'
-    } else if (value.match(/^(\^?!?PE\d\d?)|([^\s:]*:[^\s:]*)$/)) {
-        return 'pin'
+    } else if (value === '') {
+        return 'any'
     } else {
         return 'string'
     }
 }
 
-function findTooltip(lines: string[], currentLine: string): string {
-    const nextLines = lines.slice(lines.indexOf(currentLine) + 1)
+function findTooltip(lines: string[], currentLineIndex: number): string {
     const tooltipLines: string[] = []
-    for (const nextLine of nextLines) {
-        const trimmedNextLine = nextLine.trim()
+    for (let i = currentLineIndex + 1; i < lines.length; i++) {
+        const trimmedNextLine = lines[i].trim()
         if (trimmedNextLine.startsWith('#   ')) {
             tooltipLines.push(trimmedNextLine.substring(3).trim())
         } else if (trimmedNextLine.startsWith('#') && !trimmedNextLine.startsWith('#   ')) {

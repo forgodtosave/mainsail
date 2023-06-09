@@ -45,9 +45,9 @@ export function klipperConfigCompletionSource(context: CompletionContext) {
         if (!typeNode) return null
         // blocktype like [printer] or [extruder]
         const blocktype = context.state.sliceDoc(typeNode.from, typeNode.to)
-        let options = getOptionsByBlockType(blocktype)
+        let options = getOptionsByBlockType(blocktype, context.state, typeNode)
         if (options == null) return null
-        // if this config block includes a trigger parameter, add dependent parameters to options and remove allready used options
+        // remove allready used options and if this config block includes a trigger parameter, add dependent parameters to options
         options = editOptions(options, context.state, parent)
         return {
             from: tagBefore ? parent.from + tagBefore.index : context.pos,
@@ -84,20 +84,37 @@ function getTagBefore(state: EditorState, from: number, pos: number) {
     return /\w*$/.exec(textBefore)
 }
 
-function getOptionsByBlockType(blocktype: string) {
-    return autocompletionMap.get(blocktype) ?? []
+function getOptionsByBlockType(blocktype: string, state: EditorState, node: SyntaxNode) {
+    let options = []
+    // if stepper is a delta stepper return options for specific delta-kinematics
+    if ( ['stepper_a', 'stepper_b', 'stepper_c'].includes(blocktype)) {
+        options = autocompletionMap.get('stepper_a-' + getPrinterKinematics(state, node)) ?? []
+    } else {
+        options = autocompletionMap.get(blocktype) ?? []
+    }
+
+    // if block is a stepper block, add stepper_x options or stepper_z1 options if its a secondary stepper
+    if (blocktype.includes('stepper_')) {
+        if (/\d/.test(blocktype)) {
+            return options.concat(autocompletionMap.get('stepper_z1') ?? [])
+        } else {
+            return options.concat(autocompletionMap.get('stepper_x') ?? [])
+        }
+    }
+    if (blocktype.includes('extruder') && /\d/.test(blocktype)) {
+        return options.concat(autocompletionMap.get('extruder1') ?? [])
+    } else return options
 }
 
 function editOptions(options: { label: string; type: string; info: string }[], state: EditorState, node: SyntaxNode) {
     const allreadyUsedOptions = new Set<string>()
-    // for all options in the current config block ckheck if they are trigger parameters and add dependent parameters if necessary
+    // for all options in the current config block check if it is a trigger parameters and add dependent parameters if necessary
     for (const childNode of node.parent?.parent?.getChildren('Option') ?? []) {
         const parameter = childNode.firstChild
         const value = childNode.lastChild
         if (!parameter || !value) continue
         const parameterName = state.sliceDoc(parameter.from, parameter.to)
-        // save allready used options to remove them later
-        allreadyUsedOptions.add(parameterName)
+        allreadyUsedOptions.add(parameterName) // save allready used options to remove them later
         const valueName = state.sliceDoc(value.from, value.to).replace(/(\r\n|\n|\r)/gm, '')
         const parameterValue = valueName !== '' ? parameterName + ':' + valueName : parameterName
         const mapEntry = dependentParametersMap.get(parameterValue)
@@ -109,3 +126,24 @@ function editOptions(options: { label: string; type: string; info: string }[], s
     // remove all options that are already used in the current config block
     return (options = options.filter((option) => !allreadyUsedOptions.has(option.label.replace(': ', ''))))
 }
+
+function getPrinterKinematics(state: EditorState, node: SyntaxNode) {
+    for (const childNode of node.parent?.getChildren('Option') ?? []) {
+        const parameter = childNode.firstChild
+        const value = childNode.lastChild
+        if (!parameter || !value) continue
+        const parameterName = state.sliceDoc(parameter.from, parameter.to)
+        if (parameterName !== 'kinematics') continue
+        const valueName = state.sliceDoc(value.from, value.to).replace(/(\r\n|\n|\r)/gm, '')
+        return valueName
+    }
+    return ''
+}
+
+/* 
+Known Issues:
+- secondary stepper/extruder-names are not suggested (only stepper_z1/extruder1)
+- while typing the block-name the stepper names ar incorrect
+- 
+
+*/
