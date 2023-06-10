@@ -24,14 +24,14 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
     let currentCondParamBlock: CondParamBlock | null = null
     let isCodeBlock = false
     let printerKinematics = ''
-    let multipleTrigger = []
+    let multipleTrigger: string[] = []
 
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
         const line = lines[lineIndex]
         const trimmedLine = line.trim()
 
         // save current currentBlock if end of the codeBlock is reached or if new block is started
-        if ((trimmedLine === '```' && !isCodeBlock) || (trimmedLine.startsWith('[') && trimmedLine.endsWith(']'))) {
+        if ((trimmedLine === '```' && !isCodeBlock) || (/^#?[\[].*[\]]$/.test(trimmedLine))) {
             if (currentConfigBlock || currentCondParamBlock) {
                 if (currentConfigBlock) {
                     if (
@@ -42,10 +42,13 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                         currentConfigBlock = null
                     }
                 } else if (currentCondParamBlock) {
-                    if (multipleTrigger) {
-                        for (const triggerName in multipleTrigger) {
-                            currentCondParamBlock.triggerParameter += ":" + triggerName
-                            depParamBlockMap.set(currentCondParamBlock.triggerParameter, currentCondParamBlock)
+                    if (multipleTrigger.length > 0) {
+                        for (let i = 0; i < multipleTrigger.length; i++) {
+                            const condParamBlock = {
+                                triggerParameter: "sensor_type:" + multipleTrigger[i].replace(/"/g, ''),
+                                parameters: currentCondParamBlock.parameters,
+                            }
+                            depParamBlockMap.set(condParamBlock.triggerParameter, condParamBlock)
                         }
                         multipleTrigger = []
                     } else {
@@ -61,8 +64,9 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
         // parse current config line
         if (isCodeBlock) {
             // if [Block]
-            if (trimmedLine.startsWith('[') && trimmedLine.endsWith(']')) {
-                const [type, name] = trimmedLine.substring(1, trimmedLine.length - 1).split(' ')
+            if (/^#?[\[].*[\]]$/.test(trimmedLine)) {
+                const [type, name] = trimmedLine.replace(/\[|\]|#/g, '').split(' ')
+                if (trimmedLine[0] === '#') console.log(trimmedLine, type, name)
                 //because multiple stepper_ blocks exist which are spesific to the printer kinematics
                 const newType = type.includes('stepper_') && configBlockMap.has(type) ? type + "-" + printerKinematics : type
                 currentConfigBlock = {
@@ -82,7 +86,7 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                         isOptional: parameterWithColon.startsWith('#'),
                     }
                     // for all [blocks] which only exists to specify dependent parameters
-                    if (value.trim() !== '' && (parameterName === 'kinematics' || parameterName === 'lcd_type')) {
+                    if (value.trim() !== '' && (parameterName === 'kinematics' || parameterName === 'lcd_type' || (parameterName === 'type' && currentConfigBlock.type === 'menu'))) {
                         if (parameterName === 'kinematics') printerKinematics = value.trim()
                         currentCondParamBlock = {
                             triggerParameter: parameterName + ':' + value.trim(),
@@ -106,10 +110,11 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                         isOptional: parameterWithColon.startsWith('#'),
                     }
                     if (currentCondParamBlock == null) {
+                        
                         const match = tooltip.match(/One of\s+(.+)/)
                         if (match && match[1]) {
                             const values = match[1].match(/"([^"]+)"/g) ?? []
-                            if (value) multipleTrigger = values
+                            multipleTrigger = values
                         }
                         currentCondParamBlock = {
                             triggerParameter: value.trim() === '' ? parameterName : parameterName + ':' + value.trim(),
