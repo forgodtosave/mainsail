@@ -85,25 +85,20 @@ function getTagBefore(state: EditorState, from: number, pos: number) {
 }
 
 function getOptionsByBlockType(blocktype: string, state: EditorState, node: SyntaxNode) {
-    let options = []
-    // if stepper is a delta stepper return options for specific delta-kinematics
-    if ( ['stepper_a', 'stepper_b', 'stepper_c'].includes(blocktype)) {
-        options = autocompletionMap.get('stepper_a-' + getPrinterKinematics(state, node)) ?? []
-    } else {
-        options = autocompletionMap.get(blocktype) ?? []
-    }
-
     // if block is a stepper block, add stepper_x options or stepper_z1 options if its a secondary stepper
     if (blocktype.includes('stepper_')) {
+        const options = autocompletionMap.get(blocktype + '-' + getPrinterKinematics(state, node)) ?? []
         if (/\d/.test(blocktype)) {
             return options.concat(autocompletionMap.get('stepper_z1') ?? [])
         } else {
             return options.concat(autocompletionMap.get('stepper_x') ?? [])
         }
+    } else {
+        const options = autocompletionMap.get(blocktype) ?? []
+        if (blocktype.includes('extruder') && /\d/.test(blocktype)) {
+            return options.concat(autocompletionMap.get('extruder1') ?? [])
+        } else return options
     }
-    if (blocktype.includes('extruder') && /\d/.test(blocktype)) {
-        return options.concat(autocompletionMap.get('extruder1') ?? [])
-    } else return options
 }
 
 function editOptions(options: { label: string; type: string; info: string }[], state: EditorState, node: SyntaxNode) {

@@ -31,7 +31,7 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
         const trimmedLine = line.trim()
 
         // save current currentBlock if end of the codeBlock is reached or if new block is started
-        if ((trimmedLine === '```' && !isCodeBlock) || (/^#?[\[].*[\]]$/.test(trimmedLine))) {
+        if ((trimmedLine === '```' && !isCodeBlock) || /^#?[\[].*[\]]$/.test(trimmedLine)) {
             if (currentConfigBlock || currentCondParamBlock) {
                 if (currentConfigBlock) {
                     if (
@@ -45,7 +45,7 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                     if (multipleTrigger.length > 0) {
                         for (let i = 0; i < multipleTrigger.length; i++) {
                             const condParamBlock = {
-                                triggerParameter: "sensor_type:" + multipleTrigger[i].replace(/"/g, ''),
+                                triggerParameter: 'sensor_type:' + multipleTrigger[i].replace(/"/g, ''),
                                 parameters: currentCondParamBlock.parameters,
                             }
                             depParamBlockMap.set(condParamBlock.triggerParameter, condParamBlock)
@@ -57,6 +57,7 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                     currentCondParamBlock = null
                 }
             }
+            if (trimmedLine === '```' && !isCodeBlock) printerKinematics = ''
         }
         // start new codeBlock or ends it
         if (trimmedLine === '```') isCodeBlock = !isCodeBlock
@@ -68,9 +69,10 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                 const [type, name] = trimmedLine.replace(/\[|\]|#/g, '').split(' ')
                 if (trimmedLine[0] === '#') console.log(trimmedLine, type, name)
                 //because multiple stepper_ blocks exist which are spesific to the printer kinematics
-                const newType = type.includes('stepper_') && configBlockMap.has(type) ? type + "-" + printerKinematics : type
+                const newType =
+                    type.includes('stepper_') && printerKinematics !== '' ? type + '-' + printerKinematics : type
                 currentConfigBlock = {
-                    type: newType, 
+                    type: newType,
                     requiresName: !!name,
                     parameters: [],
                 }
@@ -80,13 +82,18 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                 if (parameterMatch) {
                     const [, parameterWithColon, parameterName, value] = parameterMatch
                     const parameter: Parameter = {
-                        name: parameterName.includes('<') ? parameterName.split('<')[0]: parameterName,
+                        name: parameterName.includes('<') ? parameterName.split('<')[0] : parameterName,
                         value: parseValue(value.trim(), parameterName),
                         tooltip: findTooltip(lines, lineIndex),
                         isOptional: parameterWithColon.startsWith('#'),
                     }
                     // for all [blocks] which only exists to specify dependent parameters
-                    if (value.trim() !== '' && (parameterName === 'kinematics' || parameterName === 'lcd_type' || (parameterName === 'type' && currentConfigBlock.type === 'menu'))) {
+                    if (
+                        value.trim() !== '' &&
+                        (parameterName === 'kinematics' ||
+                            parameterName === 'lcd_type' ||
+                            (parameterName === 'type' && currentConfigBlock.type === 'menu'))
+                    ) {
                         if (parameterName === 'kinematics') printerKinematics = value.trim()
                         currentCondParamBlock = {
                             triggerParameter: parameterName + ':' + value.trim(),
@@ -110,7 +117,6 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                         isOptional: parameterWithColon.startsWith('#'),
                     }
                     if (currentCondParamBlock == null) {
-                        
                         const match = tooltip.match(/One of\s+(.+)/)
                         if (match && match[1]) {
                             const values = match[1].match(/"([^"]+)"/g) ?? []
