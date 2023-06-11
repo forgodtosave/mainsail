@@ -28,18 +28,13 @@ dependentParameters.forEach((entry) => {
     }))
     dependentParametersMap.set(entry.triggerParameter, parameters)
 })
-//Map with all autocompletion-objects for all blocktype
-const blockTypeOptions = Array.from(autocompletionMap.keys()).map((tag) => ({
-    label: tag.includes('stepper_') && tag.includes('-') ? tag.split('-')[0] : tag,
-    type: 'keyword',
-}))
 
 export function klipperConfigCompletionSource(context: CompletionContext) {
     printConfigMd()
     const parent = syntaxTree(context.state).resolveInner(context.pos, -1)
     const tagBefore = getTagBefore(context.state, parent.from, context.pos)
 
-    // if node is a Parameter
+    // If writing Parameter node
     if (parent?.type.name === 'Parameter') {
         const typeNode = findTypeNode(parent)
         if (!typeNode) return null
@@ -55,28 +50,50 @@ export function klipperConfigCompletionSource(context: CompletionContext) {
             validFor: /^(\w*)?$/,
         }
     }
-    // if node is a ConfigBlock
+    // If writing BlockType node
     else if (parent.parent?.type.name === 'ConfigBlock') {
         return {
             from: tagBefore ? parent.from + tagBefore.index : context.pos,
-            options: blockTypeOptions,
+            options: getAllPossibleBlockTypes(context.state, parent),
             validFor: /^(\w*)?$/,
         }
     }
-    // if not return null
+    // If not return null
     else {
         return null
     }
 }
 
-function findTypeNode(node: SyntaxNode | null) {
-    while (node) {
-        if (node.type.name === 'ConfigBlock') {
-            return node.firstChild
+function findTypeNode(node: SyntaxNode) {
+    let travNode: SyntaxNode | null = node
+    while (travNode) {
+        if (travNode.type.name === 'ConfigBlock') {
+            return travNode.firstChild
         }
-        node = node.parent
+        travNode = travNode.parent
     }
     return null
+}
+
+function findPrinterNode(node: SyntaxNode, state: EditorState) {
+    const typeNode = findTypeNode(node)
+    // if node is [printer] return it
+    if (typeNode && typeNode.type.name === 'printer') {
+        return typeNode
+    }
+    // if not find Programm node
+    let programmNode = null
+    // if node is a [Block] go to Programm node
+    if (typeNode) programmNode = typeNode.parent?.parent ?? null
+    // if typeNode is null node bust be the Programm node
+    else programmNode = node
+    const printerNode =
+        programmNode?.getChildren('ConfigBlock')?.find((configBlockNode) => {
+            const blockTypeNode = configBlockNode.firstChild
+            if (!blockTypeNode) return false
+            return state.sliceDoc(blockTypeNode.from, blockTypeNode.to) === 'printer'
+        }) ?? null
+    return printerNode
 }
 
 function getTagBefore(state: EditorState, from: number, pos: number) {
@@ -85,20 +102,23 @@ function getTagBefore(state: EditorState, from: number, pos: number) {
 }
 
 function getOptionsByBlockType(blocktype: string, state: EditorState, node: SyntaxNode) {
+    let options: { label: string; type: string; info: string }[] = []
     // if block is a stepper block, add stepper_x options or stepper_z1 options if its a secondary stepper
     if (blocktype.includes('stepper_')) {
-        const options = autocompletionMap.get(blocktype + '-' + getPrinterKinematics(state, node)) ?? []
+        options = autocompletionMap.get(blocktype + '--' + getPrinterKinematics(state, node)) ?? []
         if (/\d/.test(blocktype)) {
             return options.concat(autocompletionMap.get('stepper_z1') ?? [])
         } else {
             return options.concat(autocompletionMap.get('stepper_x') ?? [])
         }
+    } else if (autocompletionMap.has(blocktype)) {
+        options = autocompletionMap.get(blocktype) ?? []
     } else {
-        const options = autocompletionMap.get(blocktype) ?? []
-        if (blocktype.includes('extruder') && /\d/.test(blocktype)) {
-            return options.concat(autocompletionMap.get('extruder1') ?? [])
-        } else return options
+        options = autocompletionMap.get(blocktype + '--' + getPrinterKinematics(state, node)) ?? []
     }
+    if (blocktype.includes('extruder') && /\d/.test(blocktype)) {
+        return options.concat(autocompletionMap.get('extruder1') ?? [])
+    } else return options
 }
 
 function editOptions(options: { label: string; type: string; info: string }[], state: EditorState, node: SyntaxNode) {
@@ -108,8 +128,8 @@ function editOptions(options: { label: string; type: string; info: string }[], s
         const parameter = childNode.firstChild
         const value = childNode.lastChild
         if (!parameter || !value) continue
-        const parameterName = state.sliceDoc(parameter.from, parameter.to)
-        if (parameterName[-1] !== '_') allreadyUsedOptions.add(parameterName) // save allready used options to remove them later (not variable_)
+        const parameterName = state.sliceDoc(parameter.from, parameter.to).trim()
+        if (!parameterName.endsWith('_')) allreadyUsedOptions.add(parameterName) // save allready used options to remove them later (not "variable_")
         const valueName = state.sliceDoc(value.from, value.to).replace(/(\r\n|\n|\r)/gm, '')
         const parameterValue = valueName !== '' ? parameterName + ':' + valueName : parameterName
         const mapEntry = dependentParametersMap.get(parameterValue)
@@ -117,28 +137,43 @@ function editOptions(options: { label: string; type: string; info: string }[], s
             options = options.concat(mapEntry)
         }
     }
-
     // remove all options that are already used in the current config block
     return (options = options.filter((option) => !allreadyUsedOptions.has(option.label.replace(': ', ''))))
 }
 
 function getPrinterKinematics(state: EditorState, node: SyntaxNode) {
-    for (const childNode of node.parent?.getChildren('Option') ?? []) {
+    const printerOptions = findPrinterNode(node, state)?.getChild('Body')?.getChildren('Option') ?? []
+    for (const childNode of printerOptions) {
         const parameter = childNode.firstChild
         const value = childNode.lastChild
         if (!parameter || !value) continue
         const parameterName = state.sliceDoc(parameter.from, parameter.to)
         if (parameterName !== 'kinematics') continue
-        const valueName = state.sliceDoc(value.from, value.to).replace(/(\r\n|\n|\r)/gm, '')
-        return valueName
+        const printerKinematics = state.sliceDoc(value.from, value.to).replace(/(\r\n|\n|\r)/gm, '')
+        return printerKinematics
     }
     return ''
+}
+
+function getAllPossibleBlockTypes(state: EditorState, node: SyntaxNode) {
+    const printerKinematics = '--' + getPrinterKinematics(state, node)
+    console.log(printerKinematics)
+    const blockTypes = Array.from(autocompletionMap.keys())
+        .filter(
+            (blockType) =>
+                (blockType.includes('--') && blockType.includes(printerKinematics)) || !blockType.includes('stepper_')
+        )
+        .map((blockType) => ({
+            label: blockType.includes('--') ? blockType.split('-')[0] : blockType,
+            type: 'keyword',
+        }))
+    return blockTypes
 }
 
 /* 
 Known Issues:
 - secondary stepper/extruder-names are not suggested (only stepper_z1/extruder1)
-- while typing the block-name the stepper names ar incorrect - fixed?
+- wcomments after [block] -> suggestions are shown as if writing inside []
 - 
 
 */

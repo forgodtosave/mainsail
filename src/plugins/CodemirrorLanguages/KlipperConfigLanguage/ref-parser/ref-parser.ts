@@ -22,7 +22,7 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
     const depParamBlockMap: Map<string, CondParamBlock> = new Map()
     let currentConfigBlock: ConfigBlock | null = null
     let currentCondParamBlock: CondParamBlock | null = null
-    let isInsideCodeBlock = false
+    let isCodeSection = false
     let printerKinematics = ''
     let multipleTriggers: string[] = []
 
@@ -31,7 +31,7 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
         const trimmedLine = line.trim()
 
         // Save current currentBlock if end of the codeBlock is reached or if new block is started
-        if ((trimmedLine === '```' && !isInsideCodeBlock) || /^#?\[.*\]$/.test(trimmedLine)) {
+        if ((trimmedLine === '```' && !isCodeSection) || /^#?\[.*\]$/.test(trimmedLine)) {
             if (currentConfigBlock || currentCondParamBlock) {
                 if (currentConfigBlock) {
                     if (
@@ -57,19 +57,18 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                     currentCondParamBlock = null
                 }
             }
-            if (trimmedLine === '```' && !isInsideCodeBlock) printerKinematics = ''
+            if (trimmedLine === '```' && !isCodeSection) printerKinematics = ''
         }
         // Start new codeBlock or ends it
-        if (trimmedLine === '```') isInsideCodeBlock = !isInsideCodeBlock
+        if (trimmedLine === '```') isCodeSection = !isCodeSection
 
         // Parse current config line
-        if (isInsideCodeBlock) {
+        if (isCodeSection) {
             // If [Block]
             if (/^#?\[.*\]$/.test(trimmedLine)) {
                 const [type, name] = trimmedLine.replace(/\[|\]|#/g, '').split(' ')
-                // Because multiple stepper_ blocks exist which are spesific to the printer kinematics
-                const newType =
-                    type.includes('stepper_') && printerKinematics !== '' ? type + '-' + printerKinematics : type
+                // Because multiple [Blocks] exist which are spesific to the printer kinematics (printerKinematics only set if in same CodeSection as [printer])
+                const newType = printerKinematics !== '' ? type + '--' + printerKinematics : type
                 currentConfigBlock = {
                     type: newType,
                     requiresName: !!name,
@@ -158,7 +157,7 @@ function findTooltip(textLines: string[], currentLineIndex: number): string {
         const trimmedNextLine = textLines[i].trim()
         if (trimmedNextLine.startsWith('#   ')) {
             tooltipLines.push(trimmedNextLine.substring(3).trim())
-        } else if (trimmedNextLine.startsWith('#') && !trimmedNextLine.startsWith('#   ')) {
+        } else {
             break
         }
     }
