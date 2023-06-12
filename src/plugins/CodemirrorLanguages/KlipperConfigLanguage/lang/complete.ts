@@ -4,28 +4,33 @@ import { EditorState } from '@codemirror/state'
 import { SyntaxNode } from '@lezer/common'
 import { exampleText, parseConfigMd, printConfigMd } from '../ref-parser/ref-parser'
 
-//parse Config Reference
+// Parse Config Reference
 const [parsedMd, dependentParameters] = parseConfigMd(exampleText)
-//Map with all autocompletion-objects (for each parameter one) for each blocktype
+
+// Map with all autocompletion objects for each blocktype
 const autocompletionMap = new Map<string, { label: string; type: string; info: string }[]>()
-parsedMd.forEach((entry) => {
-    const parameters = entry.parameters.flatMap((parameter) => ({
-        label: parameter.name + ': ',
+
+// Map with all autocompletion objects for each trigger parameter
+const dependentParametersMap = new Map<string, { label: string; type: string; info: string }[]>()
+
+function createParameterObject(parameter: any) {
+    return {
+        label: `${parameter.name}: `,
         type: 'variable',
         detail: parameter.isOptional ? '(optional)' : '(required)',
         info: parameter.tooltip,
-    }))
+    }
+}
+
+// Populate autocompletionMap
+parsedMd.forEach((entry) => {
+    const parameters = entry.parameters.map(createParameterObject)
     autocompletionMap.set(entry.type, parameters)
 })
-//Map with all autocompletion-objects (for each parameter one) for each trigger parameter
-const dependentParametersMap = new Map<string, { label: string; type: string; info: string }[]>()
+
+// Populate dependentParametersMap
 dependentParameters.forEach((entry) => {
-    const parameters = entry.parameters.flatMap((parameter) => ({
-        label: parameter.name + ': ',
-        type: 'variable',
-        detail: parameter.isOptional ? '(optional)' : '(required)',
-        info: parameter.tooltip,
-    }))
+    const parameters = entry.parameters.map(createParameterObject)
     dependentParametersMap.set(entry.triggerParameter, parameters)
 })
 
@@ -34,34 +39,36 @@ export function klipperConfigCompletionSource(context: CompletionContext) {
     const parent = syntaxTree(context.state).resolveInner(context.pos, -1)
     const tagBefore = getTagBefore(context.state, parent.from, context.pos)
 
-    // If writing Parameter node
+    if (parent?.type.name === 'Comment') return null
+
     if (parent?.type.name === 'Parameter') {
         const typeNode = findTypeNode(parent)
         if (!typeNode) return null
-        // blocktype like [printer] or [extruder]
-        const blocktype = context.state.sliceDoc(typeNode.from, typeNode.to)
-        let options = getOptionsByBlockType(blocktype, context.state, typeNode)
+        const blockType = context.state.sliceDoc(typeNode.from, typeNode.to)
+        const options = getOptionsByBlockType(blockType, context.state, parent)
         if (options == null) return null
-        // remove allready used options and if this config block includes a trigger parameter, add dependent parameters to options
-        options = editOptions(options, context.state, parent)
+
         return {
             from: tagBefore ? parent.from + tagBefore.index : context.pos,
             options: options,
             validFor: /^(\w*)?$/,
         }
     }
-    // If writing BlockType node
-    else if (parent.parent?.type.name === 'ConfigBlock') {
+
+    if (parent?.parent?.type.name === 'ConfigBlock') {
         return {
             from: tagBefore ? parent.from + tagBefore.index : context.pos,
             options: getAllPossibleBlockTypes(context.state, parent),
             validFor: /^(\w*)?$/,
         }
     }
-    // If not return null
-    else {
-        return null
-    }
+
+    return null
+}
+
+function getTagBefore(state: EditorState, from: number, pos: number) {
+    const textBefore = state.sliceDoc(from, pos)
+    return /\w*$/.exec(textBefore)
 }
 
 function findTypeNode(node: SyntaxNode) {
@@ -77,16 +84,14 @@ function findTypeNode(node: SyntaxNode) {
 
 function findPrinterNode(node: SyntaxNode, state: EditorState) {
     const typeNode = findTypeNode(node)
-    // if node is [printer] return it
+    // If node is [printer] return it
     if (typeNode && typeNode.type.name === 'printer') {
         return typeNode
     }
-    // if not find Programm node
+    // If not, find Programm node and search for printer node from there
     let programmNode = null
-    // if node is a [Block] go to Programm node
-    if (typeNode) programmNode = typeNode.parent?.parent ?? null
-    // if typeNode is null node bust be the Programm node
-    else programmNode = node
+    if (typeNode) programmNode = typeNode.parent?.parent ?? null // If node is a typeNode go up to Programm node
+    else programmNode = node // If typeNode is null, node must be the Programm node or inside inport (here not important)
     const printerNode =
         programmNode?.getChildren('ConfigBlock')?.find((configBlockNode) => {
             const blockTypeNode = configBlockNode.firstChild
@@ -96,29 +101,49 @@ function findPrinterNode(node: SyntaxNode, state: EditorState) {
     return printerNode
 }
 
-function getTagBefore(state: EditorState, from: number, pos: number) {
-    const textBefore = state.sliceDoc(from, pos)
-    return /\w*$/.exec(textBefore)
+function getPrinterKinematics(state: EditorState, node: SyntaxNode) {
+    const printerOptions = findPrinterNode(node, state)?.getChild('Body')?.getChildren('Option') ?? []
+    for (const childNode of printerOptions) {
+        const parameter = childNode.firstChild
+        const value = childNode.lastChild
+        if (!parameter || !value) continue
+        const parameterName = state.sliceDoc(parameter.from, parameter.to)
+        if (parameterName !== 'kinematics') continue
+        const printerKinematics = state.sliceDoc(value.from, value.to).replace(/(\r\n|\n|\r)/gm, '')
+        return printerKinematics
+    }
+    return ''
 }
 
-function getOptionsByBlockType(blocktype: string, state: EditorState, node: SyntaxNode) {
+function getOptionsByBlockType(blocktype: string, state: EditorState, parentNode: SyntaxNode) {
     let options: { label: string; type: string; info: string }[] = []
-    // if block is a stepper block, add stepper_x options or stepper_z1 options if its a secondary stepper
+    const printerKinematics = getPrinterKinematics(state, parentNode)
     if (blocktype.includes('stepper_')) {
-        options = autocompletionMap.get(blocktype + '--' + getPrinterKinematics(state, node)) ?? []
-        if (/\d/.test(blocktype)) {
-            return options.concat(autocompletionMap.get('stepper_z1') ?? [])
-        } else {
-            return options.concat(autocompletionMap.get('stepper_x') ?? [])
+        1
+        const stepperOptions = autocompletionMap.get(blocktype + '--' + printerKinematics)
+        const secondaryStepperOptions = /\d/.test(blocktype)
+            ? autocompletionMap.get('stepper_z1')
+            : autocompletionMap.get('stepper_x')
+        if (stepperOptions) {
+            options.push(...stepperOptions)
         }
-    } else if (autocompletionMap.has(blocktype)) {
-        options = autocompletionMap.get(blocktype) ?? []
+        if (secondaryStepperOptions) {
+            options.push(...secondaryStepperOptions)
+        }
     } else {
-        options = autocompletionMap.get(blocktype + '--' + getPrinterKinematics(state, node)) ?? []
+        const optionsForBlockType =
+            autocompletionMap.get(blocktype) || autocompletionMap.get(blocktype + '--' + printerKinematics)
+        if (optionsForBlockType) {
+            options.push(...optionsForBlockType)
+        }
     }
     if (blocktype.includes('extruder') && /\d/.test(blocktype)) {
-        return options.concat(autocompletionMap.get('extruder1') ?? [])
-    } else return options
+        const secondaryExtruderOptions = autocompletionMap.get('extruder1')
+        if (secondaryExtruderOptions) {
+            options.push(...secondaryExtruderOptions)
+        }
+    }
+    return editOptions(options, state, parentNode)
 }
 
 function editOptions(options: { label: string; type: string; info: string }[], state: EditorState, node: SyntaxNode) {
@@ -141,23 +166,8 @@ function editOptions(options: { label: string; type: string; info: string }[], s
     return (options = options.filter((option) => !allreadyUsedOptions.has(option.label.replace(': ', ''))))
 }
 
-function getPrinterKinematics(state: EditorState, node: SyntaxNode) {
-    const printerOptions = findPrinterNode(node, state)?.getChild('Body')?.getChildren('Option') ?? []
-    for (const childNode of printerOptions) {
-        const parameter = childNode.firstChild
-        const value = childNode.lastChild
-        if (!parameter || !value) continue
-        const parameterName = state.sliceDoc(parameter.from, parameter.to)
-        if (parameterName !== 'kinematics') continue
-        const printerKinematics = state.sliceDoc(value.from, value.to).replace(/(\r\n|\n|\r)/gm, '')
-        return printerKinematics
-    }
-    return ''
-}
-
 function getAllPossibleBlockTypes(state: EditorState, node: SyntaxNode) {
     const printerKinematics = '--' + getPrinterKinematics(state, node)
-    console.log(printerKinematics)
     const blockTypes = Array.from(autocompletionMap.keys())
         .filter(
             (blockType) =>
@@ -170,10 +180,4 @@ function getAllPossibleBlockTypes(state: EditorState, node: SyntaxNode) {
     return blockTypes
 }
 
-/* 
-Known Issues:
-- secondary stepper/extruder-names are not suggested (only stepper_z1/extruder1)
-- wcomments after [block] -> suggestions are shown as if writing inside []
-- 
-
-*/
+//Known Issues: secondary stepper/extruder-names are not suggested (only stepper_z1/extruder1)
