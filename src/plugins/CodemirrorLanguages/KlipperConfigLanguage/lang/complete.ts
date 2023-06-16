@@ -104,13 +104,13 @@ function findPrinterNode(node: SyntaxNode, state: EditorState) {
 function getPrinterKinematics(state: EditorState, node: SyntaxNode) {
     const printerOptions = findPrinterNode(node, state)?.getChild('Body')?.getChildren('Option') ?? []
     for (const childNode of printerOptions) {
-        const parameter = childNode.firstChild
-        const value = childNode.lastChild
+        const parameter = childNode.getChild('Parameter')
+        const value = childNode.getChild('Value')
         if (!parameter || !value) continue
         const parameterName = state.sliceDoc(parameter.from, parameter.to)
         if (parameterName !== 'kinematics') continue
         const printerKinematics = state.sliceDoc(value.from, value.to).replace(/(\r\n|\n|\r)/gm, '')
-        return printerKinematics
+        return printerKinematics.split('#')[0].trim()
     }
     return ''
 }
@@ -168,16 +168,17 @@ function editOptions(options: { label: string; type: string; info: string }[], s
 
 function getAllPossibleBlockTypes(state: EditorState, node: SyntaxNode) {
     const printerKinematics = '--' + getPrinterKinematics(state, node)
-    const blockTypes = Array.from(autocompletionMap.keys())
-        .filter(
-            (blockType) =>
-                (blockType.includes('--') && blockType.includes(printerKinematics)) || !blockType.includes('stepper_')
+    let blockTypes = Array.from(autocompletionMap.keys())
+    if (printerKinematics !== '--') {
+        // all blockTypes but if stepper_ only these which match the printerKinematics
+        blockTypes = blockTypes.filter(
+            (blockType) => !blockType.includes('stepper_') || blockType.includes('--' + printerKinematics)
         )
-        .map((blockType) => ({
-            label: blockType.includes('--') ? blockType.split('-')[0] : blockType,
-            type: 'keyword',
-        }))
-    return blockTypes
+    }
+    return blockTypes.map((blockType) => ({
+        label: blockType.includes('--') ? blockType.split('-')[0] : blockType,
+        type: 'keyword',
+    }))
 }
 
 //Known Issues: secondary stepper/extruder-names are not suggested (only stepper_z1/extruder1)
