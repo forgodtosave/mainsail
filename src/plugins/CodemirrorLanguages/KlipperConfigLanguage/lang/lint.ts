@@ -5,48 +5,70 @@ import { SyntaxNode } from '@lezer/common'
 import { exampleText, parseConfigMd, printConfigMd } from '../ref-parser/ref-parser'
 
 // Parse Config Reference
-const [configBlockMap, depParamBlockMap] = parseConfigMd(exampleText)
+const [mdConfigBlockMap, mdParamBlockMap] = parseConfigMd(exampleText)
 
 export const klipperConfigLint = linter((view) => {
     const diagnostics: Diagnostic[] = []
+    const programmNode = syntaxTree(view.state).topNode
+    const importNodes = programmNode.getChildren('Import')
+    const configBlockNodes = createConfigBlockNodeMap(programmNode, view.state)
+
+    // check imports
+    importNodes.forEach((importNode) => {
+        const pathNode = importNode.getChild('FilePath')
+        if (!pathNode) {
+            addToDiagnostics(diagnostics, importNode, 'Import must be a file or file path')
+        }
+    })
+
+    // check all config blocks
+    const printerKinematics = getPrinterKinematics(view.state, programmNode)
+    const allPossibleBlockTypes = getAllPossibleBlockTypes(view.state, printerKinematics)
+
+    configBlockNodes.forEach((configBlockNode, blockTypeIdent) => {
+        const blockTypeNode = configBlockNode.getChild('BlockType')
+        if (!blockTypeNode) return
+        const [blockType, identifier, duplicate] = blockTypeIdent.split(' ')
+
+        // check if BlockType is valid
+        if (!allPossibleBlockTypes.has(blockType)) {
+            let msg = 'Invalid BlockType: ' + blockType
+            const possibleAlternatives = findClosestMatches(blockType, allPossibleBlockTypes)
+            if (possibleAlternatives.length > 0) {
+                msg += '\nDid you mean: ' + possibleAlternatives.map((item) => `"${item}"`).join(', ') + ' ?'
+            }
+            msg += '\n(forther linting in this block is not possible)'
+            addToDiagnostics(diagnostics, blockTypeNode, msg)
+            return
+        }
+
+        // check if BlockName is given if required
+        if (!identifier && mdConfigBlockMap.get(blockType)?.requiresName) {
+            addToDiagnostics(diagnostics, blockTypeNode, 'Identifier required for ' + blockType)
+        }
+
+        //check if duplicate
+        if (duplicate) {
+            if (identifier) {
+                const idnetifierNode = configBlockNode.getChild('Identifier') ?? blockTypeNode
+                addToDiagnostics(diagnostics, idnetifierNode, 'Duplicate Identifier')
+            } else {
+                addToDiagnostics(diagnostics, blockTypeNode, 'Duplicate BlockType')
+            }
+        }
+
+        const usedOptions = new Map<string, SyntaxNode>()
+        // check if options are valid in this blocktype
+
+        // check if all required options are given
+
+        // check if all options have valid values
+    })
+
+    // if nothing else check if lezer-parser could parse the node
     syntaxTree(view.state)
         .cursor()
         .iterate((node) => {
-            // if comment skip further checking
-            if (node.type.name !== 'Comment') {
-                // check if BlockType is valid
-                if (node.type.name === 'BlockType') {
-                    const blockType = view.state.sliceDoc(node.from, node.to)
-                    const allPossibleBlockTypes = getAllPossibleBlockTypes(view.state, node.node)
-                    if (!allPossibleBlockTypes.has(blockType)) {
-                        diagnostics.push({
-                            from: node.from,
-                            to: node.to,
-                            severity: 'error',
-                            message: 'Invalid BlockType: ' + blockType,
-                        })
-                        return
-                    }
-                }
-
-                // check if BlockName is given if required
-                if (node.type.name === 'BlockType') {
-                }
-
-                // if import check if Value is a path
-                if (node.type.name === 'ImportKeyword') {
-                }
-
-                // check if Parameter is valid for BlockType
-                if (node.type.name === 'Parameter') {
-                }
-
-                // check if Value is valid for Parameter
-                if (node.type.name === 'Value') {
-                }
-            }
-
-            // if nothing else check if lezer-parser could parse the node
             if (node.type.isError) {
                 diagnostics.push({
                     from: node.from,
@@ -56,46 +78,31 @@ export const klipperConfigLint = linter((view) => {
                 })
             }
         })
+
     return diagnostics
 })
 
-function getTagBefore(state: EditorState, from: number, pos: number) {
-    const textBefore = state.sliceDoc(from, pos)
-    return /\w*$/.exec(textBefore)
+function addToDiagnostics(diagnostics: Diagnostic[], node: SyntaxNode, message: string) {
+    diagnostics.push({
+        from: node.from,
+        to: node.to,
+        severity: 'error',
+        message: message,
+    })
 }
 
-function findTypeNode(node: SyntaxNode) {
-    let travNode: SyntaxNode | null = node
-    while (travNode) {
-        if (travNode.type.name === 'ConfigBlock') {
-            return travNode.firstChild
-        }
-        travNode = travNode.parent
-    }
-    return null
-}
-
-function findPrinterNode(node: SyntaxNode, state: EditorState) {
-    const typeNode = findTypeNode(node)
-    // If node is [printer] return it
-    if (typeNode && typeNode.type.name === 'printer') {
-        return typeNode
-    }
-    // If not, find Programm node and search for printer node from there
-    let programmNode = null
-    if (typeNode) programmNode = typeNode.parent?.parent ?? null // If node is a typeNode go up to Programm node
-    else programmNode = node // If typeNode is null, node must be the Programm node or inside inport (here not important)
+function findPrinterNode(programmNode: SyntaxNode, state: EditorState) {
     const printerNode =
-        programmNode?.getChildren('ConfigBlock')?.find((configBlockNode) => {
-            const blockTypeNode = configBlockNode.firstChild
+        programmNode.getChildren('ConfigBlock')?.find((configBlockNode) => {
+            const blockTypeNode = configBlockNode.getChild('BlockType')
             if (!blockTypeNode) return false
             return state.sliceDoc(blockTypeNode.from, blockTypeNode.to) === 'printer'
         }) ?? null
     return printerNode
 }
 
-function getPrinterKinematics(state: EditorState, node: SyntaxNode) {
-    const printerOptions = findPrinterNode(node, state)?.getChild('Body')?.getChildren('Option') ?? []
+function getPrinterKinematics(state: EditorState, programmNode: SyntaxNode) {
+    const printerOptions = findPrinterNode(programmNode, state)?.getChild('Body')?.getChildren('Option') ?? []
     for (const childNode of printerOptions) {
         const parameter = childNode.getChild('Parameter')
         const value = childNode.getChild('Value')
@@ -159,16 +166,74 @@ function editOptions(options: { label: string; type: string; info: string }[], s
     return (options = options.filter((option) => !allreadyUsedOptions.has(option.label.replace(': ', ''))))
 }
 
-function getAllPossibleBlockTypes(state: EditorState, node: SyntaxNode) {
-    const printerKinematics = '--' + getPrinterKinematics(state, node)
-    let blockTypes = Array.from(configBlockMap.keys())
-    // if no printerKinematics is set, no filtering (all steppers_ possible)
-    if (printerKinematics !== '--') {
-        // all blockTypes but if stepper_ only these which match the printerKinematics
+function getAllPossibleBlockTypes(state: EditorState, printerKinematics: String) {
+    let blockTypes = Array.from(mdConfigBlockMap.keys())
+    // if no printerKinematics is set, no filtering (all steppers_ possible) else filter steppers_ by printerKinematics
+    if (printerKinematics !== '') {
         blockTypes = blockTypes.filter(
             (blockType) => !blockType.includes('stepper_') || blockType.includes('--' + printerKinematics)
         )
     }
     blockTypes = blockTypes.map((blockType) => (blockType.includes('--') ? blockType.split('-')[0] : blockType))
     return new Set(blockTypes)
+}
+
+function createConfigBlockNodeMap(programmNode: SyntaxNode, state: EditorState) {
+    const configBlockNodes = programmNode.getChildren('ConfigBlock')
+    const configBlockNodeMap = new Map<string, SyntaxNode>()
+    configBlockNodes.forEach((configBlockNode) => {
+        const blockTypeNode = configBlockNode.getChild('BlockType')
+        if (!blockTypeNode) return
+        const blockType = state.sliceDoc(blockTypeNode.from, blockTypeNode.to)
+
+        const identifierNode = configBlockNode.getChild('Identifier')
+        const identifierName = identifierNode ? state.sliceDoc(identifierNode.from, identifierNode.to).trim() : ''
+
+        let mapKey = blockType + (identifierName !== '' ? ' ' + identifierName : ' ')
+        if (configBlockNodeMap.has(mapKey)) mapKey += ' duplicate'
+        while (configBlockNodeMap.has(mapKey)) {
+            mapKey += '-'
+        }
+
+        configBlockNodeMap.set(mapKey, configBlockNode)
+    })
+    return configBlockNodeMap
+}
+
+function findClosestMatches(input: string, set: Set<string>): string[] {
+    const matches = []
+    let minErrors = Infinity
+
+    for (const str of set) {
+        const errors = calculateErrors(input, str)
+        if (errors <= minErrors) {
+            minErrors = errors
+            if (errors === 0) {
+                matches.unshift(str) // Add exact matches at the beginning
+            } else {
+                matches.push(str) // Add other matches at the end
+            }
+        }
+    }
+    return matches
+}
+
+function calculateErrors(str1: string, str2: string): number {
+    const len1 = str1.length
+    const len2 = str2.length
+    const dp: number[][] = []
+    for (let i = 0; i <= len1; i++) {
+        dp[i] = []
+        dp[i][0] = i
+    }
+    for (let j = 0; j <= len2; j++) {
+        dp[0][j] = j
+    }
+    for (let i = 1; i <= len1; i++) {
+        for (let j = 1; j <= len2; j++) {
+            const cost = str1[i - 1] === str2[j - 1] ? 0 : 1
+            dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost)
+        }
+    }
+    return dp[len1][len2]
 }

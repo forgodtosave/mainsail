@@ -167,9 +167,9 @@ function editOptions(options: { label: string; type: string; info: string }[], s
 }
 
 function getAllPossibleBlockTypes(state: EditorState, node: SyntaxNode) {
-    const printerKinematics = '--' + getPrinterKinematics(state, node)
+    const printerKinematics = getPrinterKinematics(state, node)
     let blockTypes = Array.from(autocompletionMap.keys())
-    if (printerKinematics !== '--') {
+    if (printerKinematics !== '') {
         // all blockTypes but if stepper_ only these which match the printerKinematics
         blockTypes = blockTypes.filter(
             (blockType) => !blockType.includes('stepper_') || blockType.includes('--' + printerKinematics)
