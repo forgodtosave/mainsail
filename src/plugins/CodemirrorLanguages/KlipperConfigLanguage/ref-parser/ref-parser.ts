@@ -121,7 +121,7 @@ export function parseConfigMd(text: string): [Map<string, ConfigBlock>, Map<stri
                             multipleTriggers = values
                         }
                         currentCondParamBlock = {
-                            triggerParameter: value.trim() === '' ? parameterName : parameterName + ':' + value.trim(),
+                            triggerParameter: parameterName + ':' + value.trim(),
                             parameters: [parameter],
                         }
                     } else {

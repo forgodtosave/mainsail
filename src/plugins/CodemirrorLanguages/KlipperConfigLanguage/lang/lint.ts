@@ -2,16 +2,23 @@ import { syntaxTree } from '@codemirror/language'
 import { linter, Diagnostic } from '@codemirror/lint'
 import { EditorState } from '@codemirror/state'
 import { SyntaxNode } from '@lezer/common'
-import { exampleText, parseConfigMd, printConfigMd } from '../ref-parser/ref-parser'
+import { exampleText, parseConfigMd } from '../ref-parser/ref-parser'
+interface Parameter {
+    name: string
+    value: string
+    isOptional: boolean
+    tooltip: string
+}
 
 // Parse Config Reference
-const [mdConfigBlockMap, mdParamBlockMap] = parseConfigMd(exampleText)
+const [mdConfigBlockMap, mdDepParamBlockMap] = parseConfigMd(exampleText)
 
 export const klipperConfigLint = linter((view) => {
     const diagnostics: Diagnostic[] = []
     const programmNode = syntaxTree(view.state).topNode
     const importNodes = programmNode.getChildren('Import')
-    const configBlockNodes = createConfigBlockNodeMap(programmNode, view.state)
+    // also add diagnostics for duplicate BlockTypes
+    const configBlockNodes = createConfigBlockNodeMap(programmNode, view.state, diagnostics)
 
     // check imports
     importNodes.forEach((importNode) => {
@@ -28,7 +35,7 @@ export const klipperConfigLint = linter((view) => {
     configBlockNodes.forEach((configBlockNode, blockTypeIdent) => {
         const blockTypeNode = configBlockNode.getChild('BlockType')
         if (!blockTypeNode) return
-        const [blockType, identifier, duplicate] = blockTypeIdent.split(' ')
+        const [blockType, identifier] = blockTypeIdent.split(' ')
 
         // check if BlockType is valid
         if (!allPossibleBlockTypes.has(blockType)) {
@@ -44,25 +51,31 @@ export const klipperConfigLint = linter((view) => {
 
         // check if BlockName is given if required
         if (!identifier && mdConfigBlockMap.get(blockType)?.requiresName) {
-            addToDiagnostics(diagnostics, blockTypeNode, 'Identifier required for ' + blockType)
+            addToDiagnostics(diagnostics, blockTypeNode, 'Identifier required!\nLike [' + blockType + ' myName]')
         }
 
-        //check if duplicate
-        if (duplicate) {
-            if (identifier) {
-                const idnetifierNode = configBlockNode.getChild('Identifier') ?? blockTypeNode
-                addToDiagnostics(diagnostics, idnetifierNode, 'Duplicate Identifier')
-            } else {
-                addToDiagnostics(diagnostics, blockTypeNode, 'Duplicate BlockType')
-            }
-        }
-
-        const usedOptions = new Map<string, SyntaxNode>()
-        // check if options are valid in this blocktype
+        // also add diagnostics for duplicate Parameters
+        const usedOptions = createOptionsNodeMap(configBlockNode, view.state, diagnostics)
+        if (usedOptions.size === 0) return
+        const allPossibleOptions = createAllPossibleOptionsMap(blockType, usedOptions)
+        if (allPossibleOptions.size === 0) return
 
         // check if all required options are given
+        allPossibleOptions.forEach((option, parameter) => {
+            if (!option.isOptional && !usedOptions.has(parameter)) {
+                addToDiagnostics(diagnostics, blockTypeNode, 'Missing required Parameter: ' + parameter)
+            }
+        })
 
-        // check if all options have valid values
+        usedOptions.forEach(({ paramValue, optionNode }, parameter) => {
+            // check if used option is valid in this blocktype
+            if (!allPossibleOptions.has(parameter)) {
+                addToDiagnostics(diagnostics, optionNode, 'Invalid Parameter in this Block!')
+                return
+            }
+
+            // check if used option has correct value type
+        })
     })
 
     // if nothing else check if lezer-parser could parse the node
@@ -115,58 +128,7 @@ function getPrinterKinematics(state: EditorState, programmNode: SyntaxNode) {
     return ''
 }
 
-function getOptionsByBlockType(blocktype: string, state: EditorState, parentNode: SyntaxNode) {
-    let options: { label: string; type: string; info: string }[] = []
-    const printerKinematics = getPrinterKinematics(state, parentNode)
-    if (blocktype.includes('stepper_')) {
-        1
-        const stepperOptions = autocompletionMap.get(blocktype + '--' + printerKinematics)
-        const secondaryStepperOptions = /\d/.test(blocktype)
-            ? autocompletionMap.get('stepper_z1')
-            : autocompletionMap.get('stepper_x')
-        if (stepperOptions) {
-            options.push(...stepperOptions)
-        }
-        if (secondaryStepperOptions) {
-            options.push(...secondaryStepperOptions)
-        }
-    } else {
-        const optionsForBlockType =
-            autocompletionMap.get(blocktype) || autocompletionMap.get(blocktype + '--' + printerKinematics)
-        if (optionsForBlockType) {
-            options.push(...optionsForBlockType)
-        }
-    }
-    if (blocktype.includes('extruder') && /\d/.test(blocktype)) {
-        const secondaryExtruderOptions = autocompletionMap.get('extruder1')
-        if (secondaryExtruderOptions) {
-            options.push(...secondaryExtruderOptions)
-        }
-    }
-    return editOptions(options, state, parentNode)
-}
-
-function editOptions(options: { label: string; type: string; info: string }[], state: EditorState, node: SyntaxNode) {
-    const allreadyUsedOptions = new Set<string>()
-    // for all options in the current config block check if it is a trigger parameters and add dependent parameters if necessary
-    for (const childNode of node.parent?.parent?.getChildren('Option') ?? []) {
-        const parameter = childNode.firstChild
-        const value = childNode.lastChild
-        if (!parameter || !value) continue
-        const parameterName = state.sliceDoc(parameter.from, parameter.to).trim()
-        if (!parameterName.endsWith('_')) allreadyUsedOptions.add(parameterName) // save allready used options to remove them later (not "variable_")
-        const valueName = state.sliceDoc(value.from, value.to).replace(/(\r\n|\n|\r)/gm, '')
-        const parameterValue = valueName !== '' ? parameterName + ':' + valueName : parameterName
-        const mapEntry = dependentParametersMap.get(parameterValue)
-        if (mapEntry) {
-            options = options.concat(mapEntry)
-        }
-    }
-    // remove all options that are already used in the current config block
-    return (options = options.filter((option) => !allreadyUsedOptions.has(option.label.replace(': ', ''))))
-}
-
-function getAllPossibleBlockTypes(state: EditorState, printerKinematics: String) {
+function getAllPossibleBlockTypes(state: EditorState, printerKinematics: string) {
     let blockTypes = Array.from(mdConfigBlockMap.keys())
     // if no printerKinematics is set, no filtering (all steppers_ possible) else filter steppers_ by printerKinematics
     if (printerKinematics !== '') {
@@ -178,7 +140,7 @@ function getAllPossibleBlockTypes(state: EditorState, printerKinematics: String)
     return new Set(blockTypes)
 }
 
-function createConfigBlockNodeMap(programmNode: SyntaxNode, state: EditorState) {
+function createConfigBlockNodeMap(programmNode: SyntaxNode, state: EditorState, diagnostics: Diagnostic[]) {
     const configBlockNodes = programmNode.getChildren('ConfigBlock')
     const configBlockNodeMap = new Map<string, SyntaxNode>()
     configBlockNodes.forEach((configBlockNode) => {
@@ -189,13 +151,9 @@ function createConfigBlockNodeMap(programmNode: SyntaxNode, state: EditorState) 
         const identifierNode = configBlockNode.getChild('Identifier')
         const identifierName = identifierNode ? state.sliceDoc(identifierNode.from, identifierNode.to).trim() : ''
 
-        let mapKey = blockType + (identifierName !== '' ? ' ' + identifierName : ' ')
-        if (configBlockNodeMap.has(mapKey)) mapKey += ' duplicate'
-        while (configBlockNodeMap.has(mapKey)) {
-            mapKey += '-'
-        }
-
-        configBlockNodeMap.set(mapKey, configBlockNode)
+        const mapKey = blockType + ' ' + identifierName
+        if (configBlockNodeMap.has(mapKey)) addToDiagnostics(diagnostics, blockTypeNode, 'Duplicate BlockType')
+        else configBlockNodeMap.set(mapKey, configBlockNode)
     })
     return configBlockNodeMap
 }
@@ -236,4 +194,42 @@ function calculateErrors(str1: string, str2: string): number {
         }
     }
     return dp[len1][len2]
+}
+
+function createOptionsNodeMap(configBlockNode: SyntaxNode, state: EditorState, diagnostics: Diagnostic[]) {
+    const optionsNodeMap = new Map<string, { paramValue: string; optionNode: SyntaxNode }>()
+    const optionNodes = configBlockNode.getChild('Body')?.getChildren('Option') ?? []
+    if (!optionNodes) return optionsNodeMap
+    optionNodes.forEach((optionNode) => {
+        const parameterNode = optionNode.getChild('Parameter')
+        if (!parameterNode) return
+        const parameter = state.sliceDoc(parameterNode.from, parameterNode.to).trim()
+        const valueNode = optionNode.getChild('Value')
+        const value = valueNode ? state.sliceDoc(valueNode.from, valueNode.to).trim() : ''
+        const paramValue = parameter + ':' + value
+        if (optionsNodeMap.has(parameter)) addToDiagnostics(diagnostics, parameterNode, 'Duplicate Parameter')
+        else optionsNodeMap.set(parameter, { paramValue, optionNode })
+    })
+    return optionsNodeMap
+}
+
+function createAllPossibleOptionsMap(
+    blockType: string,
+    usedOptions: Map<string, { paramValue: string; optionNode: SyntaxNode }>
+) {
+    const allPossibleOptions = new Map<string, Parameter>()
+    const blockTypeOptions = mdConfigBlockMap.get(blockType)?.parameters ?? []
+    blockTypeOptions.forEach((parameter) => {
+        allPossibleOptions.set(parameter.name, parameter)
+    })
+    usedOptions.forEach(({ paramValue }) => {
+        const depParams = mdDepParamBlockMap.get(paramValue)
+        if (depParams) {
+            depParams.parameters.forEach((parameter) => {
+                allPossibleOptions.set(parameter.name, parameter)
+            })
+        }
+    })
+
+    return allPossibleOptions
 }

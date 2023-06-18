@@ -156,7 +156,7 @@ function editOptions(options: { label: string; type: string; info: string }[], s
         const parameterName = state.sliceDoc(parameter.from, parameter.to).trim()
         if (!parameterName.endsWith('_')) allreadyUsedOptions.add(parameterName) // save allready used options to remove them later (not "variable_")
         const valueName = state.sliceDoc(value.from, value.to).replace(/(\r\n|\n|\r)/gm, '')
-        const parameterValue = valueName !== '' ? parameterName + ':' + valueName : parameterName
+        const parameterValue = parameterName + ':' + valueName
         const mapEntry = dependentParametersMap.get(parameterValue)
         if (mapEntry) {
             options = options.concat(mapEntry)
