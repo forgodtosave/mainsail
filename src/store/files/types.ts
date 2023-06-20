@@ -11,6 +11,7 @@ export interface FileState {
         percent: number
         speed: number
     }
+    pinedFiles: string[]
 }
 
 export interface FileStateFile {
@@ -40,7 +41,6 @@ export interface FileStateFile {
     metadataPulled?: boolean
     metadataRequested?: boolean
     size?: number
-    pined?: boolean
     [key: string]: any
 }
 

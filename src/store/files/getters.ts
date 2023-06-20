@@ -100,6 +100,7 @@ export const getters: GetterTree<FileState, any> = {
                     last_status: null,
                     last_print_duration: null,
                     last_total_duration: null,
+                    isPined: false,
                 }
 
                 const preheat_gcode_array: string[] = []
@@ -183,10 +184,11 @@ export const getters: GetterTree<FileState, any> = {
                     }
                 }
 
+                if (state.pinedFiles.includes(file.filename)) tmp.isPined = true
+
                 if (boolShowPrintedFiles) output.push(tmp)
                 else if (tmp.count_printed === 0) output.push(tmp)
             })
-
             return output
         },
 

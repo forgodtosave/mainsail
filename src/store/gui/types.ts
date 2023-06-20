@@ -138,6 +138,7 @@ export interface GuiState {
             orderMetadataColumns: string[]
             currentPath: string
             selectedFiles: FileStateGcodefile[]
+            pinedFiles: string[]
         }
         heightmap: {
             probed: boolean

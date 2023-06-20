@@ -375,14 +375,14 @@
                 <v-list-item
                     v-if="!contextMenu.item.isDirectory && !contextMenu.item.isPined"
                     :disabled="!isGcodeFile(contextMenu.item)"
-                    @click="pin(contextMenu.item, true)">
+                    @click="contextMenu.item.isPined = true; pinFile(contextMenu.item)">
                     <v-icon class="mr-1">{{ mdiPin }}</v-icon>
                     {{ 'Pin' }}
                 </v-list-item>
                 <v-list-item
                     v-if="!contextMenu.item.isDirectory && contextMenu.item.isPined"
                     :disabled="!isGcodeFile(contextMenu.item)"
-                    @click="pin(contextMenu.item, false)">
+                    @click="contextMenu.item.isPined = false; unpinFile(contextMenu.item)">
                     <v-icon class="mr-1">{{ mdiPinOff }}</v-icon>
                     {{ 'un-Pin' }}
                 </v-list-item>
@@ -745,7 +745,7 @@ export default class GcodefilesPanel extends Mixins(BaseMixin, ControlMixin) {
         y: 0,
         item: {
             isDirectory: false,
-            idPined: false,
+            isPined: false,
             filename: '',
             permissions: '',
             modified: new Date(),
@@ -841,6 +841,18 @@ export default class GcodefilesPanel extends Mixins(BaseMixin, ControlMixin) {
 
     set selectedFiles(newVal) {
         this.$store.dispatch('gui/saveSettingWithoutUpload', { name: 'view.gcodefiles.selectedFiles', value: newVal })
+    }
+
+    get pinedFiles() {
+        return this.$store.state.gui.view.gcodefiles.pinedFiles ?? []
+    }
+
+    unpinFile(file: FileStateGcodefile) {
+        this.$store.state.gui.view.gcodefiles.pinedFiles.splice(this.pinedFiles().indexOf(file.filename, 1))
+    }
+
+    pinFile(file: FileStateGcodefile) {
+        this.$store.state.gui.view.gcodefiles.pinedFiles.push(file.filename)
     }
 
     get fixedHeaders(): tableColumnSetting[] {
