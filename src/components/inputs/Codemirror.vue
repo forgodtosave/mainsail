@@ -22,6 +22,9 @@ import { klipperCfg } from '../../plugins/Codemirror/KlipperCfgLang/lang/klipper
 import { parseErrorLint } from '../../plugins/Codemirror/parseErrorLint'
 import { indentUnit } from '@codemirror/language'
 
+import { logTree } from '../../plugins/Codemirror/printLezerTree'
+import { syntaxTree } from '@codemirror/language'
+
 @Component
 export default class Codemirror extends Mixins(BaseMixin) {
     private content = ''
@@ -50,6 +53,8 @@ export default class Codemirror extends Mixins(BaseMixin) {
         if (newVal !== cm_value) {
             this.setCmValue(newVal)
         }
+        const state = this.cminstance?.state ?? EditorState.create({})
+        logTree(syntaxTree(state), state.doc.toString())
     }
 
     mounted(): void {
