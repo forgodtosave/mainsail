@@ -37,5 +37,5 @@ export function klipperCfg() {
 
 /* 
 to generate the parser run:
-npx @lezer/generator klipperCfg.grammar -o klipperCfgParser.js
+npx lezer-generator klipperCfg.grammar -o klipperCfgParser.js
  */
