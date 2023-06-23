@@ -15,7 +15,7 @@ Option { Parameter ":" Value | GcodeKeyword ":" Jinja2 }
 Value { value (newline | eof) | newline valueBlock<value> }
 Jinja2 { jinja2 (newline | eof) | newline valueBlock<jinja2> }
 
-value { Pin | pins | VirtualPin | VirtualPin | Cords | Number | String | Boolean | Path | FilePath | Resolution | Ip}
+value { Pin | pins | VirtualPin | Cords | Number | String | Boolean | Path | FilePath | Resolution | Ip}
 pins { sep<Pin, ","> }
 Cords { sep<number, ","> }
 Number { number }
