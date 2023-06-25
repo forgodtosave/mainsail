@@ -1,0 +1,36 @@
+# 1) normal Pin
+# 2) inverted Pin
+# 3) pullup/low Pin
+# 4) combination of iverted and pullup/low pin
+# 5) wrong combination of iverted and pullup/low pin
+# 6) lowercase Pin
+# 7) pins
+# 8) virtual pin 
+# 9) virtual pin with non valid characters
+
+# int
+# float
+# wrong number
+# cords 
+# mixing float/int in cords
+
+# normal string
+# string with whitespaces
+# string with special characters
+# url, ... as string
+# string with non valid characters like "#" and "[]"
+
+# boolean 
+
+# Path 
+# import of a file in same directory
+# import of with parth starting with "/", "./", "../", "~/"
+# import of with a relative path
+
+# Resolution 
+# non valid Resolution
+
+# Ipv4
+# Ipv4 with prot
+# ipv4 with subnetsize
+# Ipv4 with wrong syntax 
