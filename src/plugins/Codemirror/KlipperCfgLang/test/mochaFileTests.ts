@@ -34,8 +34,8 @@ export function fileTests(file: string, fileName: string, mayIgnore = defaultIgn
         let m = caseExpr.exec(file)
         if (!m) throw new Error(`Unexpected file format in ${fileName} around\n\n${toLineContext(file, lastIndex)}`)
 
-        let text = m[2],
-            expected = m[3].trim()
+        let text = m[2]
+        let expected = m[3].trim()
         let [, name, configStr] = /(.*?)(\{.*?\})?$/.exec(m[1])!
         let config = configStr ? JSON.parse(configStr) : null
         let strict = !/⚠|\.\.\./.test(expected)

@@ -9,14 +9,13 @@
     "scripts": {
         "serve": "vite serve",
         "build": "vite build && npm run build.zip",
+        "build:lang": "npm run build:parser:klipperCfg && npm run build:lang:klipperCfg",
+        "build:lang:klipperCfg": "rollup --config src/plugins/Codemirror/KlipperCfgLang/rollup.config.js",
+        "build:parser:klipperCfg": "lezer-generator src/plugins/Codemirror/KlipperCfgLang/parser/klipperCfg.grammar -o src/plugins/Codemirror/KlipperCfgLang/parser/klipperCfgParser.js",
         "format": "npm run format:base -- --write",
         "format:base": "prettier .",
         "format:check": "npm run format:base -- --check",
-        "build-klipperLang": "rollup --config src/plugins/Codemirror/KlipperCfgLang/rollup.config.js",
-        "build-parser": "lezer-generator src/plugins/Codemirror/KlipperCfgLang/parser/klipperCfg.grammar -o src/plugins/Codemirror/KlipperCfgLang/parser/klipperCfgParser.js",
-        "test-parser": "mocha src/plugins/Codemirror/KlipperCfgLang/test/test-klipperCfg.js",
         "lint": "eslint --ignore-path .gitignore src",
-        "build-lang": "npm run build-parser && npm run build-klipperLang",
         "lint:fix": "npm run lint -- --fix",
         "build.zip": "cd ./dist && zip -r mainsail.zip ./ -x '**.DS_Store' ./ && cd ..",
         "i18n-extract": "vue-i18n-extract use-config",
@@ -24,6 +23,7 @@
         "start": "vite build && vite preview",
         "test": "start-server-and-test preview http://127.0.0.1:4173/ 'cypress run'",
         "test:ui": "cypress open",
+        "test:parser:klipperCfg": "mocha --config src/plugins/Codemirror/.mocharc.json src/plugins/Codemirror/KlipperCfgLang/test/test-klipperCfg.js",
         "changelog": "git cliff v0.0.4..$(git describe --tags $(git rev-list --tags --max-count=1)) --output CHANGELOG.md"
     },
     "dependencies": {

@@ -1,6 +1,6 @@
 {
     "name": "@lezer/klippercfg",
-    "version": "0.1",
+    "version": "1.0",
     "description": "Lezer-based grammar for Klipper Configuration",
     "main": "dist/klipperCfgParser.cjs",
     "type": "module",
