@@ -1,5 +1,4 @@
 # 1) only import
-
 [include test.cfg]
 ==>
 Program(Import(ImportKeyword,FilePath))
@@ -7,7 +6,6 @@ Program(Import(ImportKeyword,FilePath))
 
 
 # 2) only empty config block
-
 [mcu]
 ==>
 Program(ConfigBlock(BlockType))
@@ -15,7 +13,6 @@ Program(ConfigBlock(BlockType))
 
 
 # 3) only config block
-
 [mcu]
 serial: /dev/ttyAMA0
 restart_method: command
@@ -25,7 +22,6 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Path)),Option(Paramete
 
 
 # 4) import between config blocks
-
 [mcu]
 serial: /dev/ttyAMA0
 [include test.cfg]

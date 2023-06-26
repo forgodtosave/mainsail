@@ -7,9 +7,9 @@ sep<content, seperator> { content (seperator content)+ }
 
 
 Import { "[" ImportKeyword FilePath "]" (newline | eof) }
-ConfigBlock {"[" BlockType Identifier? "]" (newline | eof) Body? }
+ConfigBlock {"[" BlockType Identifier? "]" (newline Body? | newline? eof )  }
 
-Body { Option+ }
+Body { Option+ eof? }
 Option { Parameter ":" Value | GcodeKeyword ":" Jinja2 }
 
 Value { value (newline | eof) | newline valueBlock<value> }

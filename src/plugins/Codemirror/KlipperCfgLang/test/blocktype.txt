@@ -1,31 +1,25 @@
 # 1) block type with special characters 
-
-`[adxl345]
-[test_2a]
-[test-2a]`
+[test_-2a]
 ==>
-Program(ConfigBlock(BlockType),ConfigBlock(BlockType),ConfigBlock(BlockType))
+Program(ConfigBlock(BlockType))
 
 
 
 # 2) block type with non valid characters 
-
-`[mcu123.:%=]`
+[mcu123.:%=]
 ==>
 Program(ConfigBlock(BlockType,⚠))
 
 
 
 # 3) block type and identifier with special characters
-
-`[mcu test123_-4]`
+[mcu test123_-4]
 ==> 
 Program(ConfigBlock(BlockType,Identifier))
 
 
 
 # 4) block type and identifier with non valid characters
-
-`[mcu test123.:%=]`
+[mcu test123.:%=]
 ==>
 Program(ConfigBlock(BlockType,Identifier,⚠))

@@ -1,17 +1,18 @@
-# 1) Comment line as first line with configuration underneath
-
+# 1) Comment lines at the beginning with configuration underneath
+# test comment
 # test comment
 [include test.cfg]
 [include test2.cfg]
 ==> 
 Program(
     Comment,
+    Comment,
     Import(ImportKeyword,FilePath),
     Import(ImportKeyword,FilePath))
 
 
 
-# 2) blank line as first line with configuration underneath
+# 2) blank lines at the beginning with configuration underneath
 
 
 [include test.cfg]
@@ -24,7 +25,6 @@ Program(
 
 
 # 3) comment + blank line as first line with configuration underneath
-
 # test comment
 
 [include test.cfg]
@@ -38,7 +38,6 @@ Program(
 
 
 # 4) Comment line between config blocks / parameters 
-
 [mcu]
 serial: /dev/ttyAMA0
 # test comment
@@ -54,7 +53,6 @@ Program(
 
 
 # 5) blank line between config blocks / parameters 
-
 [mcu]
 serial: /dev/ttyAMA0
 
@@ -70,24 +68,20 @@ Program(
 
 
 # 6) Comment after a [Block], a parameter, and after a value
-
 [mcu] # test comment
 serial: /dev/ttyAMA0 # test comment
 restart_method: # test comment
     command # test comment
 ==> 
 Program(
-    ConfigBlock(BlockType,
-    Comment,
-    Body(
+    ConfigBlock(BlockType,Comment,Body(
         Option(Parameter,Value(Path,Comment)),
-        Option(Parameter,Comment,Value(String)),Comment)))
+        Option(Parameter,Comment,Value(String,Comment)))))
 
 
 
 
 # 7) Comment after all value types
-
 [test]
 path: /dev/ttyAMA0 # test comment
 filepath: /dev/test.txt # test comment
@@ -115,4 +109,5 @@ Program(
         Option(Parameter,Value(Boolean,Comment)),
         Option(Parameter,Value(Resolution,Comment)),
         Option(Parameter,Value(Ipv4,Comment)),
-        Option(Parameter,Value(Ipv6)),Comment)))
+        Option(Parameter,Value(Ipv6,Comment))
+        )))

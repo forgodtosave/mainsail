@@ -9,7 +9,7 @@ Program(
     ConfigBlock(⚠,BlockType,⚠,Identifier,⚠),
     ConfigBlock(BlockType,Body(Option(Parameter,Value(Path)))),
     Import(ImportKeyword,FilePath),
-    ⚠(BlockType),⚠(BlockType))
+    ConfigBlock(⚠,BlockType,⚠,Identifier,⚠))
 
 
 
@@ -34,11 +34,11 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Number)))))
 [mcu]
 serial@: /dev/ttyAMA0
 ==>
-Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Path)))))
+Program(ConfigBlock(BlockType,Body(Option(Parameter,⚠,Value(Path)))))
 
 
 
-5) parameter with normal value
+# 5) parameter with normal value
 [mcu]
 num: 100
 ==>
@@ -46,7 +46,7 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Number)))))
 
 
 
-6) parameter with valueBlock
+# 6) parameter with valueBlock
 [mcu]
 cords:
     10, 20
@@ -56,7 +56,7 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Cords,Cords)))))
 
 
 
-7) parameter ending on "gcode" + value
+# 7) parameter ending on "gcode" + value
 [commands]
 start_gcode: M106 S0
 ==>
@@ -64,11 +64,11 @@ Program(ConfigBlock(BlockType,Body(Option(GcodeKeyword,Jinja2))))
 
 
 
-8) parameter ending on "gcode" + valueBlock
+# 8) parameter ending on "gcode" + valueBlock
 [commands]
 end_gcode:
     M104 S0
     M140 S0
 # comment
 ==>
-Program(ConfigBlock(BlockType,Body(Option(GcodeKeyword,Jinja2),Comment)))
+Program(ConfigBlock(BlockType,Body(Option(GcodeKeyword,Jinja2))),Comment)

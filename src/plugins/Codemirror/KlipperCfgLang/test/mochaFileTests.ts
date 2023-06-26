@@ -17,8 +17,9 @@ function defaultIgnore(type: NodeType) {
     return /\W/.test(type.name)
 }
 
+// /\s*#[ \t]*(.*)(?:\r\n|\r|\n|\s)+`([^]*?)\n`(?:\r\n|\r|\n|\s)+==+>([^]*?)(?:$|(?:\r\n|\r|\n)+(?=#))/gy
 export function fileTests(file: string, fileName: string, mayIgnore = defaultIgnore) {
-    let caseExpr = /\s*#[ \t]*(.*)(?:\r\n|\r|\n)`([^]*?)`\n==+>([^]*?)(?:$|(?:\r\n|\r|\n)+(?=#))/gy
+    let caseExpr = /\s*#[ \t]*(.*)(?:\r\n|\r|\n)([^]*?)==+>([^]*?)(?:$|(?:\r\n|\r|\n)+(?=#))/gy
     let tests: {
         name: string
         text: string
@@ -33,7 +34,7 @@ export function fileTests(file: string, fileName: string, mayIgnore = defaultIgn
         let m = caseExpr.exec(file)
         if (!m) throw new Error(`Unexpected file format in ${fileName} around\n\n${toLineContext(file, lastIndex)}`)
 
-        let text = m[2].trim(),
+        let text = m[2],
             expected = m[3].trim()
         let [, name, configStr] = /(.*?)(\{.*?\})?$/.exec(m[1])!
         let config = configStr ? JSON.parse(configStr) : null
