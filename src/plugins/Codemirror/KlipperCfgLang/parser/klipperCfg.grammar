@@ -36,14 +36,14 @@ Number { number }
   Parameter { extAscii+ }
   Path { ("/"|"~/") unixPath+ ("/" unixPath+)* }
   FilePath { (Path | unixPath+) "." unixPath+ }
-  Resolution { number "x" number }
+  Resolution { $[0-9]+ "x" $[0-9]+ }
   Ipv4 { $[0-9]+ "." $[0-9]+ "." $[0-9]+ "." $[0-9]+ ((":"|"/") $[0-9]+)? }
   hex { $[0-9a-fA-F] }  
   Ipv6 { (("::" (hex+ ":")* hex+) 
         | (hex+ (":" hex+)* "::")
         | ((hex+ ":")+ (":" hex+)+)
         | ((hex+ ":" hex+ ":" hex+ ":" hex+ ":" hex+ ":" hex+))) 
-        ((":"|"/") $[0-9]+)?}
+        ("/" $[0-9]+)?}
 
   String { ![#\[\]\n\r]+  }
   jinja2 { ![#\n\r]+ }
