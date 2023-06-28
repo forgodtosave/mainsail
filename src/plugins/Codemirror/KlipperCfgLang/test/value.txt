@@ -268,3 +268,28 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Ipv6)))))
 host: 1:1/128
 ==> 
 Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Number(⚠),⚠)),Option(Parameter,⚠,Value(Path)))))
+
+
+
+# 33) Empty value:
+[server]
+host:
+restart_method: command
+==>
+Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(⚠)),Option(Parameter,Value(String)))))
+
+
+# 34) Empty value with comment:
+[server]
+host: # comment
+restart_method: command
+==>
+Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(⚠)),Option(Parameter,Value(String)))))
+
+
+
+# 35) Value with leading and trailing whitespaces:
+[mcu]
+serial:  16x16 
+==>
+Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Resolution)))))

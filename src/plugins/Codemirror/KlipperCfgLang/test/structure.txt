@@ -35,8 +35,45 @@ Program(
 
 
 
+# 5)  import + eof
+[include test.cfg]==>
+Program(Import(ImportKeyword,FilePath))
 
 
+
+# 6) empty config block + eof
+[mcu]==>
+Program(ConfigBlock(BlockType))
+
+
+
+# 7) config block + value + eof
+[mcu]
+restart_method: command==>
+Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(String)))))
+
+
+
+# 8) config block + valueBlock + eof
+[mcu]
+restart_method: 
+    command==>
+Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(String)))))
+
+
+
+# 9) config block + comment + eof
+[mcu]
+restart_method: command
+# test==>
+Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(String)))),Comment)
+
+
+
+# 10) config block + value + comment + eof
+[mcu]
+restart_method: command # test==>
+Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(String)))),Comment)
 
 
 
