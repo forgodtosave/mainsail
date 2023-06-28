@@ -20,4 +20,5 @@ cypress/screenshots/
 cypress/videos/
 components.d.ts
 
-src/plugins/Codemirror/KlipperCfgLang/parser/klipperCfgParser.*
+src/plugins/Codemirror/KlipperCfgLang/parser/klipperCfgParser.js
+src/plugins/Codemirror/KlipperCfgLang/parser/klipperCfgParser.terms.js

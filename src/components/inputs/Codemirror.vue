@@ -22,10 +22,10 @@ import { klipperCfg } from '../../plugins/Codemirror/KlipperCfgLang/lang/klipper
 import { parseErrorLint } from '../../plugins/Codemirror/parseErrorLint'
 import { indentUnit } from '@codemirror/language'
 
-import { logTree } from '../../plugins/Codemirror/printLezerTree'
-import { syntaxTree } from '@codemirror/language'
-import { parser } from '../../plugins/Codemirror/KlipperCfgLang/dist/klipperCfgParser.es.js'
-
+// for lezer grammar debugging
+//import { logTree } from '../../plugins/Codemirror/printLezerTree'
+//import { syntaxTree } from '@codemirror/language'
+//import { parser } from '../../plugins/Codemirror/KlipperCfgLang/dist/klipperCfgParser.es.js'
 
 @Component
 export default class Codemirror extends Mixins(BaseMixin) {
@@ -55,10 +55,11 @@ export default class Codemirror extends Mixins(BaseMixin) {
         if (newVal !== cm_value) {
             this.setCmValue(newVal)
         }
-        const state = this.cminstance?.state ?? EditorState.create({})
+        // for lezer grammar debugging
+        //const state = this.cminstance?.state ?? EditorState.create({})
         //logTree(syntaxTree(state), state.doc.toString())
-        const text = state.doc.toString()
-        console.log(parser.parse(text) + "")
+        //const text = state.doc.toString()
+        //console.log(parser.parse(text) + "")
     }
 
     mounted(): void {

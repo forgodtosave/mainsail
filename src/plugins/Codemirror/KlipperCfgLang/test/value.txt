@@ -284,11 +284,20 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(⚠)),Option(Parameter
 host: # comment
 restart_method: command
 ==>
+Program(ConfigBlock(BlockType,Body(Option(Parameter,Comment,Value(⚠)),Option(Parameter,Value(String)))))
+
+
+
+# 35) Empty value with whitespaces:
+[server]
+host:  
+restart_method: command
+==>
 Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(⚠)),Option(Parameter,Value(String)))))
 
 
 
-# 35) Value with leading and trailing whitespaces:
+# 36) Value with leading and trailing whitespaces:
 [mcu]
 serial:  16x16 
 ==>

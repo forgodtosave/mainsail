@@ -7,7 +7,8 @@ restart_method: command
 ==>
 Program(
     ConfigBlock(⚠,BlockType,⚠,Identifier,⚠),
-    ConfigBlock(BlockType,Body(Option(Parameter,Value(Path)))),
+    ConfigBlock(BlockType,Body(
+        Option(Parameter,Value(Path)))),
     Import(ImportKeyword,FilePath),
     ConfigBlock(⚠,BlockType,⚠,Identifier,⚠))
 
@@ -18,7 +19,10 @@ Program(
 serial
 [adxl345]
 ==>
-Program(ConfigBlock(BlockType,Body(Option(Parameter,⚠))),ConfigBlock(BlockType))
+Program(
+    ConfigBlock(BlockType,Body(
+        Option(Parameter,⚠))),
+    ConfigBlock(BlockType))
 
 
 
@@ -26,7 +30,9 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,⚠))),ConfigBlock(BlockType
 [mcu]
 serial_tem-3: 1
 ==>
-Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Number)))))
+Program(
+    ConfigBlock(BlockType,Body(
+        Option(Parameter,Value(Number)))))
 
 
 
@@ -34,7 +40,9 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Number)))))
 [mcu]
 serial@: /dev/ttyAMA0
 ==>
-Program(ConfigBlock(BlockType,Body(Option(Parameter,⚠,Value(Path)))))
+Program(
+    ConfigBlock(BlockType,Body(
+        Option(Parameter,⚠,Value(Path)))))
 
 
 
@@ -42,7 +50,9 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,⚠,Value(Path)))))
 [mcu]
 num: 100
 ==>
-Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Number)))))
+Program(
+    ConfigBlock(BlockType,Body(
+        Option(Parameter,Value(Number)))))
 
 
 
@@ -52,7 +62,9 @@ cords:
     10, 20
     220, 210
 ==>
-Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Cords,Cords)))))
+Program(
+    ConfigBlock(BlockType,Body(
+        Option(Parameter,Value(Cords,Cords)))))
 
 
 
@@ -60,7 +72,9 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Cords,Cords)))))
 [commands]
 start_gcode: M106 S0
 ==>
-Program(ConfigBlock(BlockType,Body(Option(GcodeKeyword,Jinja2))))
+Program(
+    ConfigBlock(BlockType,Body(
+        Option(GcodeKeyword,Jinja2))))
 
 
 
@@ -71,4 +85,7 @@ end_gcode:
     M140 S0
 # comment
 ==>
-Program(ConfigBlock(BlockType,Body(Option(GcodeKeyword,Jinja2))),Comment)
+Program(
+    ConfigBlock(BlockType,
+    Body(Option(GcodeKeyword,Jinja2))),
+    CommentLine)
