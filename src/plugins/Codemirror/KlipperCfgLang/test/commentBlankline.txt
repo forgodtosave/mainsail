@@ -5,8 +5,8 @@
 [include test2.cfg]
 ==> 
 Program(
-    CommentLine,
-    CommentLine,
+    Comment,
+    Comment,
     Import(ImportKeyword,FilePath),
     Import(ImportKeyword,FilePath))
 
@@ -31,7 +31,7 @@ Program(
 [include test2.cfg]
 ==> 
 Program(
-    CommentLine,
+    Comment,
     Import(ImportKeyword,FilePath),
     Import(ImportKeyword,FilePath))
 
@@ -49,9 +49,9 @@ cs_pin: rpi:None
 Program(
     ConfigBlock(BlockType,Body(
         Option(Parameter,Value(Path)),
-        CommentLine,
+        Comment,
         Option(Parameter,Value(String)))),
-        CommentLine,
+        Comment,
     ConfigBlock(BlockType,Body(
         Option(Parameter,Value(VirtualPin)))))
 

@@ -1,21 +1,12 @@
 /* ref: https://github.com/lezer-parser/python/blob/main/src/tokens.js */
 import { ExternalTokenizer, ContextTracker } from '@lezer/lr'
 
-import {
-    newline as newlineToken,
-    eof,
-    blankLine,
-    indent,
-    dedent,
-    CommentLine,
-} from '../parser/klipperCfgParser.terms.js'
+import { newline as newlineToken, eof, blankLine, indent, dedent } from '../parser/klipperCfgParser.terms.js'
 
 const newline = 10,
     carriageReturn = 13,
     space = 32,
-    tab = 9,
-    hash = 35,
-    star = 42
+    tab = 9
 
 function isLineBreak(ch) {
     return ch == newline || ch == carriageReturn
@@ -31,13 +22,6 @@ export const newlines = new ExternalTokenizer(
                 input.advance()
             }
             if (isLineBreak(input.next)) input.acceptToken(blankLine, 1)
-            else if (input.next == hash && !(input.peek(1) == star && input.peek(2) == hash)) {
-                input.advance()
-                while (!isLineBreak(input.next) && input.next >= 0) {
-                    input.advance()
-                }
-                if (isLineBreak(input.next)) input.acceptToken(CommentLine, 1)
-            }
         } else if (isLineBreak(input.next)) {
             input.acceptToken(newlineToken, 1)
         }
