@@ -17,44 +17,75 @@ function defaultIgnore(type: NodeType) {
     return /\W/.test(type.name)
 }
 
+function getLineNumber(text: string, index: number) {
+    const substring = text.substring(0, index)
+    const newLineRegex = /\n/g
+    const lineCount = (substring.match(newLineRegex) || []).length + 1
+    return lineCount
+}
+
 // /\s*#[ \t]*(.*)(?:\r\n|\r|\n|\s)+`([^]*?)\n`(?:\r\n|\r|\n|\s)+==+>([^]*?)(?:$|(?:\r\n|\r|\n)+(?=#))/gy
-export function fileTests(file: string, fileName: string, mayIgnore = defaultIgnore) {
+export function fileTests(file: string, fileName: string, onlyNoError = false, mayIgnore = defaultIgnore) {
     let caseExpr = /\s*#[ \t]*(.*)(?:\r\n|\r|\n)([^]*?)==+>([^]*?)(?:$|(?:\r\n|\r|\n)+(?=#))/gy
     let tests: {
         name: string
         text: string
         expected: string
-        configStr: string
-        config: object
         strict: boolean
         run(parser: Parser): void
     }[] = []
     let lastIndex = 0
-    for (;;) {
-        let m = caseExpr.exec(file)
-        if (!m) throw new Error(`Unexpected file format in ${fileName} around\n\n${toLineContext(file, lastIndex)}`)
-
-        let text = m[2]
-        let expected = m[3].trim()
-        let [, name, configStr] = /(.*?)(\{.*?\})?$/.exec(m[1])!
-        let config = configStr ? JSON.parse(configStr) : null
-        let strict = !/⚠|\.\.\./.test(expected)
-
+    if (onlyNoError) {
         tests.push({
-            name,
-            text,
-            expected,
-            configStr,
-            config,
-            strict,
+            name: fileName,
+            text: file,
+            expected: 'no parsing errors',
+            strict: true,
             run(parser: Parser) {
-                if ((parser as any).configure && (strict || config))
-                    parser = (parser as any).configure({ strict, ...config })
-                testTree(parser.parse(text), expected, mayIgnore)
+                parser
+                    .parse(file)
+                    .cursor()
+                    .iterate((node) => {
+                        if (node.type.isError) {
+                            let msg = 'Parse error at line ' + getLineNumber(file, node.from) + ': '
+
+                            const parseError = '"' + file.slice(node.from, node.to) + '" '
+
+                            if (parseError.length > 100) msg += parseError.slice(0, 100) + '...'
+                            else msg += parseError
+
+                            const context = '\n\t(context: '+ JSON.stringify(file.slice(node.from - 10, node.to + 10)) + ')'
+                            msg += context.length > 100 ? context.slice(0, 100) + '...' : context
+
+                            throw new Error(msg)
+                        }
+                    })
             },
         })
-        lastIndex = m.index + m[0].length
-        if (lastIndex == file.length) break
+    } else {
+        for (;;) {
+            let m = caseExpr.exec(file)
+            if (!m) throw new Error(`Unexpected file format in ${fileName} around\n\n${toLineContext(file, lastIndex)}`)
+
+            let text = m[2]
+            let expected = m[3].trim()
+            let [, name, configStr] = /(.*?)(\{.*?\})?$/.exec(m[1])!
+            let config = configStr ? JSON.parse(configStr) : null
+            let strict = !/⚠|\.\.\./.test(expected)
+            tests.push({
+                name,
+                text,
+                expected,
+                strict,
+                run(parser: Parser) {
+                    if ((parser as any).configure && (strict || config))
+                        parser = (parser as any).configure({ strict, ...config })
+                    testTree(parser.parse(text), expected, mayIgnore)
+                },
+            })
+            lastIndex = m.index + m[0].length
+            if (lastIndex == file.length) break
+        }
     }
     return tests
 }
