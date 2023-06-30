@@ -88,4 +88,4 @@ end_gcode:
 Program(
     ConfigBlock(BlockType,
     Body(Option(GcodeKeyword,Jinja2))),
-    CommentLine)
+    Comment)

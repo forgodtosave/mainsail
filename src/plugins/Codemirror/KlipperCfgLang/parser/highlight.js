@@ -13,6 +13,7 @@ export const klipperConfigHighlighting = styleTags({
     Number: t.number,
     Cords: t.number,
     Resolution: t.number,
+    Ratio: t.number,
     Pin: t.namespace,
     VirtualPin: t.namespace,
     Path: t.string,
