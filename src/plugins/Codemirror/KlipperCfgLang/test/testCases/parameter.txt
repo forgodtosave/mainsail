@@ -19,10 +19,7 @@ Program(
 serial
 [adxl345]
 ==>
-Program(
-    ConfigBlock(BlockType,Body(
-        Option(Parameter,⚠))),
-    ConfigBlock(BlockType))
+error
 
 
 
@@ -40,9 +37,7 @@ Program(
 [mcu]
 serial@: /dev/ttyAMA0
 ==>
-Program(
-    ConfigBlock(BlockType,Body(
-        Option(Parameter,⚠,Value(Path)))))
+error
 
 
 

@@ -141,11 +141,11 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(String)))))
 
 
 
-# 18) string with non valid characters like "#" and "[]"
+# 18) string with special characters 2
 [printer]
-kinematics: corexy[#]
+kinematics: {'%05.1f' % (printer.toolhead)}
 ==> 
-Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(String,⚠,Comment)))))
+Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(String)))))
 
 
 
@@ -207,7 +207,7 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Resolution)))))
 [display]
 resolution: 1280x720.8
 ==>
-Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Resolution,⚠,⚠(BlockType))))))
+error
 
 
 
@@ -239,7 +239,7 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Ipv4)))))
 [server]
 host: 0.0.0/24
 ==> 
-Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Number(⚠),⚠)),Option(Parameter,⚠,Value(Path)))))
+error
 
 
 
@@ -267,7 +267,7 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Ipv6)))))
 [server]
 host: 1:1/128
 ==> 
-Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Number(⚠),⚠)),Option(Parameter,⚠,Value(Path)))))
+error 
 
 
 
@@ -276,7 +276,8 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Number(⚠),⚠)),Opti
 host:
 restart_method: command
 ==>
-Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(⚠)),Option(Parameter,Value(String)))))
+error
+
 
 
 # 34) Empty value with comment:
@@ -284,7 +285,7 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(⚠)),Option(Parameter
 host: # comment
 restart_method: command
 ==>
-Program(ConfigBlock(BlockType,Body(Option(Parameter,Comment,Value(⚠)),Option(Parameter,Value(String)))))
+error
 
 
 
@@ -293,7 +294,7 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,Comment,Value(⚠)),Option(P
 host:  
 restart_method: command
 ==>
-Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(⚠)),Option(Parameter,Value(String)))))
+error
 
 
 

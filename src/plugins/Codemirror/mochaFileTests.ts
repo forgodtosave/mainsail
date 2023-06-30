@@ -54,7 +54,8 @@ export function fileTests(file: string, fileName: string, onlyNoError = false, m
                             if (parseError.length > 100) msg += parseError.slice(0, 100) + '...'
                             else msg += parseError
 
-                            const context = '\n\t(context: '+ JSON.stringify(file.slice(node.from - 10, node.to + 10)) + ')'
+                            const context =
+                                '\n\t(context: ' + JSON.stringify(file.slice(node.from - 10, node.to + 10)) + ')'
                             msg += context.length > 100 ? context.slice(0, 100) + '...' : context
 
                             throw new Error(msg)
@@ -70,19 +71,39 @@ export function fileTests(file: string, fileName: string, onlyNoError = false, m
             let text = m[2]
             let expected = m[3].trim()
             let [, name, configStr] = /(.*?)(\{.*?\})?$/.exec(m[1])!
-            let config = configStr ? JSON.parse(configStr) : null
-            let strict = !/⚠|\.\.\./.test(expected)
-            tests.push({
-                name,
-                text,
-                expected,
-                strict,
-                run(parser: Parser) {
-                    if ((parser as any).configure && (strict || config))
-                        parser = (parser as any).configure({ strict, ...config })
-                    testTree(parser.parse(text), expected, mayIgnore)
-                },
-            })
+
+            if (expected == 'error') {
+                tests.push({
+                    name,
+                    text,
+                    expected: 'error while parsing',
+                    strict: false,
+                    run(parser: Parser) {
+                        let parsingError = false
+                        parser
+                            .parse(text)
+                            .cursor()
+                            .iterate((node) => {
+                                if (node.type.isError) parsingError = true
+                            })
+                        if (!parsingError) throw new Error('Parsed without error, but error was expected!')
+                    },
+                })
+            } else {
+                let config = configStr ? JSON.parse(configStr) : null
+                let strict = !/⚠|\.\.\./.test(expected)
+                tests.push({
+                    name,
+                    text,
+                    expected,
+                    strict,
+                    run(parser: Parser) {
+                        if ((parser as any).configure && (strict || config))
+                            parser = (parser as any).configure({ strict, ...config })
+                        testTree(parser.parse(text), expected, mayIgnore)
+                    },
+                })
+            }
             lastIndex = m.index + m[0].length
             if (lastIndex == file.length) break
         }

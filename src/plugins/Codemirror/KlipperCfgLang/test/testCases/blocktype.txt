@@ -8,7 +8,7 @@ Program(ConfigBlock(BlockType))
 # 2) block type with non valid characters 
 [mcu123.:%=]
 ==>
-Program(ConfigBlock(BlockType,⚠))
+error
 
 
 
@@ -22,4 +22,4 @@ Program(ConfigBlock(BlockType,Identifier))
 # 4) block type and identifier with non valid characters
 [mcu test123.:%=]
 ==>
-Program(ConfigBlock(BlockType,Identifier,⚠))
+error

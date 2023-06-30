@@ -19,8 +19,6 @@ for (let file of fs.readdirSync(caseDir)) {
 }
 
 for (let file of fs.readdirSync(testConfigsDir)) {
-    //if (!/\.txt$/.test(file)) continue
-
     let result = /^[^.]+/.exec(file)
     let name = result ? result[0] : 'default-name'
     describe(name, () => {

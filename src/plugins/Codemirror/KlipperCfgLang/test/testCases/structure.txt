@@ -17,7 +17,10 @@ Program(ConfigBlock(BlockType))
 serial: /dev/ttyAMA0
 restart_method: command
 ==>
-Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(Path)),Option(Parameter,Value(String)))))
+Program(
+    ConfigBlock(BlockType,Body(
+        Option(Parameter,Value(Path)),
+        Option(Parameter,Value(String)))))
 
 
 
