@@ -1,12 +1,21 @@
 /* ref: https://github.com/lezer-parser/python/blob/main/src/tokens.js */
 import { ExternalTokenizer, ContextTracker } from '@lezer/lr'
 
-import { newline as newlineToken, eof, blankLine, indent, dedent } from '../parser/klipperCfgParser.terms.js'
+import {
+    newline as newlineToken,
+    eof,
+    blankLine,
+    indent,
+    dedent,
+    CommentLine,
+} from '../parser/klipperCfgParser.terms.js'
 
 const newline = 10,
     carriageReturn = 13,
     space = 32,
-    tab = 9
+    tab = 9,
+    hash = 35,
+    semicolon = 59
 
 function isLineBreak(ch) {
     return ch == newline || ch == carriageReturn
@@ -18,10 +27,25 @@ export const newlines = new ExternalTokenizer(
         if (input.next < 0) {
             input.acceptToken(eof)
         } else if ((prev = input.peek(-1)) < 0 || isLineBreak(prev)) {
+            console.log('|Start of line')
             while (input.next == space || input.next == tab) {
                 input.advance()
+                console.log('|-')
             }
-            if (isLineBreak(input.next)) input.acceptToken(blankLine, 1)
+            console.log('|--current char: ', JSON.stringify(String.fromCharCode(input.next)))
+            if (input.next == hash || input.next == semicolon) {
+                console.log('|----> comment')
+                input.advance()
+                while (input.next > -1 && !isLineBreak(input.next)) {
+                    console.log('|----> comment: ', JSON.stringify(String.fromCharCode(input.next)))
+                    input.advance()
+                }
+                if (isLineBreak(input.next)) {
+                    console.log('|----CommentLine')
+                    input.acceptToken(CommentLine, 1)}
+            } else if (isLineBreak(input.next)) {
+                console.log('|----blankLine')
+                input.acceptToken(blankLine, 1)}
         } else if (isLineBreak(input.next)) {
             input.acceptToken(newlineToken, 1)
         }
