@@ -20,7 +20,7 @@ import { json } from '@codemirror/lang-json'
 import { css } from '@codemirror/lang-css'
 import { klipperCfg } from '../../plugins/Codemirror/KlipperCfgLang/lang/klipperCfg'
 import { parseErrorLint } from '../../plugins/Codemirror/parseErrorLint'
-import { klipperConfigLint } from '../../plugins/Codemirror/KlipperCfgLang/lang/lint'
+import { klipperCfgLint } from '../../plugins/Codemirror/KlipperCfgLang/lang/lint'
 import { indentUnit } from '@codemirror/language'
 
 // for lezer grammar debugging
@@ -108,7 +108,7 @@ export default class Codemirror extends Mixins(BaseMixin) {
             }),
         ]
 
-        if (['cfg', 'conf'].includes(this.fileExtension)) extensions.push(klipperCfg(), klipperConfigLint)
+        if (['cfg', 'conf'].includes(this.fileExtension)) extensions.push(klipperCfg(), klipperCfgLint)
         else if (['gcode'].includes(this.fileExtension)) extensions.push(StreamLanguage.define(gcode))
         else if (['json'].includes(this.fileExtension)) extensions.push(json())
         else if (['css', 'scss', 'sass'].includes(this.fileExtension)) extensions.push(css())

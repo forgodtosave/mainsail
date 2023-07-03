@@ -2,10 +2,10 @@ import { CompletionContext } from '@codemirror/autocomplete'
 import { syntaxTree } from '@codemirror/language'
 import { EditorState } from '@codemirror/state'
 import { SyntaxNode } from '@lezer/common'
-import { exampleText, parseConfigMd, printConfigMd } from '../ref-parser/ref-parser'
+import { exampleText, parseCfgMd, printCfgMd } from '../ref-parser/ref-parser'
 
-// Parse Config Reference
-const [parsedMd, dependentParameters] = parseConfigMd(exampleText)
+// Parse Cfg Reference
+const [parsedMd, dependentParameters] = parseCfgMd(exampleText)
 
 // Map with all autocompletion objects for each blocktype
 const autocompletionMap = new Map<string, { label: string; type: string; info: string }[]>()
@@ -34,8 +34,8 @@ dependentParameters.forEach((entry) => {
     dependentParametersMap.set(entry.triggerParameter, parameters)
 })
 
-export function klipperConfigCompletionSource(context: CompletionContext) {
-    printConfigMd()
+export function klipperCfgCompletionSource(context: CompletionContext) {
+    printCfgMd()
     const parent = syntaxTree(context.state).resolveInner(context.pos, -1)
     const tagBefore = getTagBefore(context.state, parent.from, context.pos)
 
@@ -55,7 +55,7 @@ export function klipperConfigCompletionSource(context: CompletionContext) {
         }
     }
 
-    if (parent?.parent?.type.name === 'ConfigBlock') {
+    if (parent?.parent?.type.name === 'CfgBlock') {
         return {
             from: tagBefore ? parent.from + tagBefore.index : context.pos,
             options: getAllPossibleBlockTypes(context.state, parent),
@@ -74,7 +74,7 @@ function getTagBefore(state: EditorState, from: number, pos: number) {
 function findTypeNode(node: SyntaxNode) {
     let travNode: SyntaxNode | null = node
     while (travNode) {
-        if (travNode.type.name === 'ConfigBlock') {
+        if (travNode.type.name === 'CfgBlock') {
             return travNode.firstChild
         }
         travNode = travNode.parent
@@ -93,8 +93,8 @@ function findPrinterNode(node: SyntaxNode, state: EditorState) {
     if (typeNode) programmNode = typeNode.parent?.parent ?? null // If node is a typeNode go up to Programm node
     else programmNode = node // If typeNode is null, node must be the Programm node or inside inport (here not important)
     const printerNode =
-        programmNode?.getChildren('ConfigBlock')?.find((configBlockNode) => {
-            const blockTypeNode = configBlockNode.firstChild
+        programmNode?.getChildren('CfgBlock')?.find((cfgBlockNode) => {
+            const blockTypeNode = cfgBlockNode.firstChild
             if (!blockTypeNode) return false
             return state.sliceDoc(blockTypeNode.from, blockTypeNode.to) === 'printer'
         }) ?? null
@@ -148,7 +148,7 @@ function getOptionsByBlockType(blocktype: string, state: EditorState, parentNode
 
 function editOptions(options: { label: string; type: string; info: string }[], state: EditorState, node: SyntaxNode) {
     const allreadyUsedOptions = new Set<string>()
-    // for all options in the current config block check if it is a trigger parameters and add dependent parameters if necessary
+    // for all options in the current cfg block check if it is a trigger parameters and add dependent parameters if necessary
     for (const childNode of node.parent?.parent?.getChildren('Option') ?? []) {
         const parameter = childNode.firstChild
         const value = childNode.lastChild
@@ -162,7 +162,7 @@ function editOptions(options: { label: string; type: string; info: string }[], s
             options = options.concat(mapEntry)
         }
     }
-    // remove all options that are already used in the current config block
+    // remove all options that are already used in the current cfg block
     return (options = options.filter((option) => !allreadyUsedOptions.has(option.label.replace(': ', ''))))
 }
 
