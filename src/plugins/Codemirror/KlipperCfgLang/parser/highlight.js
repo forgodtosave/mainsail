@@ -5,6 +5,7 @@ export const klipperConfigHighlighting = styleTags({
     ImportKeyword: t.keyword,
     Parameter: t.variableName,
     ConfigBlock: t.keyword,
+    AutoGenBlock: t.keyword,
     BlockType: t.keyword,
     Identifier: t.regexp,
 
@@ -22,10 +23,9 @@ export const klipperConfigHighlighting = styleTags({
     Ipv4: t.number,
     Ipv6: t.number,
 
-    AutoGenSection: t.regexp,
     AutoGenLineStart: t.regexp,
     AutoGenHeader: t.regexp,
-    "#*#": t.regexp,
-    Indent: t.regexp,
+    AutoGenIndent: t.regexp,
+    
     Comment: t.comment,
 })
