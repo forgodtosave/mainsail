@@ -36,9 +36,7 @@ export const indentation = new ExternalTokenizer((input, stack) => {
     if (cDepth < 0) return
     let prev = input.peek(-1),
         depth
-    let prevStatement = '' + input.peek(-4) + input.peek(-3) + input.peek(-2) + input.peek(-1)
-    if (prevStatement === '' + hash + star + hash + space) console.log('autogen')
-    if (prev == newline || prev == carriageReturn || prevStatement === '' + hash + star + hash + space) {
+    if (prev == newline || prev == carriageReturn) {
         console.log('START', JSON.stringify(input.read(input.pos, input.pos + 5)))
         let depth = 0,
             chars = 0
@@ -49,7 +47,15 @@ export const indentation = new ExternalTokenizer((input, stack) => {
             input.advance()
             chars++
         }
-        if (depth != cDepth && !isLineBreak(input.next)) {
+        if ((input.next = hash && input.peek(1) == star && input.peek(2) == hash)) {
+            if (input.peek(4) == tab) {
+                console.log('Autogen-Indent', JSON.stringify(input.read(input.pos, input.pos + 4)))
+                //input.acceptToken(Indent, 4)
+            } else if (depth < cDepth) {
+                console.log('Autogen-Dedent', JSON.stringify(input.read(input.pos, input.pos + 4)))
+                //input.acceptToken(Dedent, 4)
+            }
+        } else if (depth != cDepth && !isLineBreak(input.next)) {
             if (depth < cDepth) {
                 console.log('dedentation')
                 console.log('|- depth', depth, 'cDepth', cDepth, '\n\n')
@@ -97,7 +103,7 @@ export const trackIndent = new ContextTracker({
     },
     shift(context, term, stack, input) {
         if (term == Indent)
-            return new IndentLevel(context, countIndent(input.read(input.pos - 5, stack.pos)) >= 1 ? 1 : 0)
+            return new IndentLevel(context, countIndent(input.read(input.pos, stack.pos)) >= 1 ? 1 : 0)
         if (term == Dedent) return context.parent
         return context
     },

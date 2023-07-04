@@ -25,5 +25,7 @@ export const klipperConfigHighlighting = styleTags({
     AutoGenSection: t.regexp,
     AutoGenLineStart: t.regexp,
     AutoGenHeader: t.regexp,
+    "#*#": t.regexp,
+    Indent: t.regexp,
     Comment: t.comment,
 })
