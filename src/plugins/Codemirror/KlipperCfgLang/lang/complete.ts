@@ -2,7 +2,7 @@ import { CompletionContext } from '@codemirror/autocomplete'
 import { syntaxTree } from '@codemirror/language'
 import { EditorState } from '@codemirror/state'
 import { SyntaxNode } from '@lezer/common'
-import { exampleText, parseCfgMd, printCfgMd } from '../ref-parser/ref-parser'
+import { exampleText, parseCfgMd } from '../ref-parser/ref-parser'
 
 // Parse Cfg Reference
 const [parsedMd, dependentParameters] = parseCfgMd(exampleText)
@@ -35,7 +35,6 @@ dependentParameters.forEach((entry) => {
 })
 
 export function klipperCfgCompletionSource(context: CompletionContext) {
-    printCfgMd()
     const parent = syntaxTree(context.state).resolveInner(context.pos, -1)
     const tagBefore = getTagBefore(context.state, parent.from, context.pos)
 
