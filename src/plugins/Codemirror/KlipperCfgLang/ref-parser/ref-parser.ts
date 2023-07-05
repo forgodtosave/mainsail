@@ -1,4 +1,4 @@
-interface Parameter {
+export interface Parameter {
     name: string
     value: string
     isOptional: boolean
