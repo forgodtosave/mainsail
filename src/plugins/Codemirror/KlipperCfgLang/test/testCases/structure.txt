@@ -80,8 +80,107 @@ Program(ConfigBlock(BlockType,Body(Option(Parameter,Value(String)))),Comment)
 
 
 
+# 11) config with AutoGenSection
+[printer]
+kinematics: corexy
+
+#*# <---------------------- SAVE_CONFIG ---------------------->
+#*# DO NOT EDIT THIS BLOCK OR BELOW. The contents are auto-generated.
+#*#
+#*# [input_shaper]
+#*# shaper_type_x = mzv
+#*# shaper_freq_x = 90.4
+==> 
+Program(
+    ConfigBlock(BlockType,Body(
+        Option(Parameter,Value(String)))),
+    AutoGenSection(
+        AutoGenHeader(AutoGenLineStart),AutoGenLineStart,AutoGenLineStart,
+        AutoGenBlock(BlockType,AutoGenLineStart,AutoGenBody(
+            AutoGenOption(Parameter,AutoGenValue(String)),AutoGenLineStart,
+            AutoGenOption(Parameter,AutoGenValue(Number))))))
 
 
 
+# 12) config with AutoGenSection + eof
+[printer]
+kinematics: corexy
+
+#*# <---------------------- SAVE_CONFIG ---------------------->
+#*# DO NOT EDIT THIS BLOCK OR BELOW. The contents are auto-generated.
+#*#
+#*# [input_shaper]
+#*# shaper_type_x = mzv
+#*# shaper_freq_x = 90.4==> 
+Program(
+    ConfigBlock(BlockType,Body(
+        Option(Parameter,Value(String)))),
+    AutoGenSection(
+        AutoGenHeader(AutoGenLineStart),AutoGenLineStart,AutoGenLineStart,
+        AutoGenBlock(BlockType,AutoGenLineStart,AutoGenBody(
+            AutoGenOption(Parameter,AutoGenValue(String)),AutoGenLineStart,
+            AutoGenOption(Parameter,AutoGenValue(Number))))))
 
 
+
+# 13) AutoGenSection with multiple configBlocks
+[printer]
+kinematics: corexy
+
+#*# <---------------------- SAVE_CONFIG ---------------------->
+#*# DO NOT EDIT THIS BLOCK OR BELOW. The contents are auto-generated.
+#*#
+#*# [input_shaper]
+#*# shaper_type_x = mzv
+#*# shaper_freq_x = 90.4
+#*#
+#*# [heater_bed]
+#*# control = pid
+#*# pid_kp = 52.053
+==> 
+Program(
+    ConfigBlock(BlockType,Body(
+        Option(Parameter,Value(String)))),
+    AutoGenSection(
+        AutoGenHeader(AutoGenLineStart),AutoGenLineStart,AutoGenLineStart,
+        AutoGenBlock(BlockType,AutoGenLineStart,AutoGenBody(
+            AutoGenOption(Parameter,AutoGenValue(String)),AutoGenLineStart,
+            AutoGenOption(Parameter,AutoGenValue(Number)))),AutoGenLineStart,AutoGenLineStart,
+        AutoGenBlock(BlockType,AutoGenLineStart,AutoGenBody(
+            AutoGenOption(Parameter,AutoGenValue(String)),AutoGenLineStart,
+            AutoGenOption(Parameter,AutoGenValue(Number))))))
+
+
+
+# 14) config with AutoGenSection + valueBlock
+[printer]
+kinematics: corexy
+
+#*# <---------------------- SAVE_CONFIG ---------------------->
+#*# DO NOT EDIT THIS BLOCK OR BELOW. The contents are auto-generated.
+#*#
+#*# [bed_mesh 20221215]
+#*# version = 1
+#*# points =
+#*# 	0.062838, -0.005912
+#*# 	0.027838, -0.025912
+#*# tension = 0.2
+#*# min_x = 15.0
+#*#
+#*# [input_shaper]
+#*# shaper_type_x = mzv
+#*# shaper_freq_x = 90.4
+==> 
+Program(
+    ConfigBlock(BlockType,Body(
+        Option(Parameter,Value(String)))),
+    AutoGenSection(
+        AutoGenHeader(AutoGenLineStart),AutoGenLineStart,AutoGenLineStart,
+        AutoGenBlock(BlockType,Identifier,AutoGenLineStart,AutoGenBody(
+            AutoGenOption(Parameter,AutoGenValue(Number)),AutoGenLineStart,
+            AutoGenOption(Parameter,AutoGenValue(AutoGenIndent,Cords,AutoGenIndent,Cords)),AutoGenLineStart,
+            AutoGenOption(Parameter,AutoGenValue(Number)),AutoGenLineStart,
+            AutoGenOption(Parameter,AutoGenValue(Number)))),AutoGenLineStart,AutoGenLineStart,
+        AutoGenBlock(BlockType,AutoGenLineStart,AutoGenBody(
+            AutoGenOption(Parameter,AutoGenValue(String)),AutoGenLineStart,
+            AutoGenOption(Parameter,AutoGenValue(Number))))))
