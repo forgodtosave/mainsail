@@ -71,6 +71,7 @@ export const klipperCfgLint = linter((view) => {
             }
 
             // check if used option has correct value type
+            if (paramValue.includes('gcode:')) return // because the current use of the old Jinja2 parser there is no good way to check the value
             const valueNode = optionNode.getChild('Value') ?? optionNode.getChild('AutoGenValue')
             const valueType = valueNode?.firstChild?.name ?? '⚠'
             if (!valueNode || !valueType || valueType === '⚠') {
@@ -80,11 +81,15 @@ export const klipperCfgLint = linter((view) => {
             const refParam = allPossibleOptions.get(parameter)
             if (!refParam) return
             if (refParam.valueType !== 'any' && !valueType.includes(refParam.valueType)) {
-                console.log('valueType: ' + valueType + ' refParam.valueType: ' + refParam.valueType)
                 addToDiagnostics(
                     diagnostics,
                     optionNode,
-                    'Wrong value-type (' + valueType + ') for Parameter: ' + parameter + '! Expected: ' + refParam.valueType
+                    'Wrong value-type (' +
+                        valueType +
+                        ') for Parameter: ' +
+                        parameter +
+                        '! Expected: ' +
+                        refParam.valueType
                 )
                 return
             }
