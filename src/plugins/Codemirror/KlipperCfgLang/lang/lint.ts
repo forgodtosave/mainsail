@@ -3,6 +3,7 @@ import { linter, Diagnostic } from '@codemirror/lint'
 import { EditorState } from '@codemirror/state'
 import { SyntaxNode } from '@lezer/common'
 import { exampleText, parseCfgMd, Parameter } from '../ref-parser/ref-parser'
+import { ref } from 'vue'
 
 // Parse Cfg Reference
 const [mdCfgBlockMap, mdDepParamBlockMap] = parseCfgMd(exampleText)
@@ -70,6 +71,23 @@ export const klipperCfgLint = linter((view) => {
             }
 
             // check if used option has correct value type
+            const valueNode = optionNode.getChild('Value') ?? optionNode.getChild('AutoGenValue')
+            const valueType = valueNode?.firstChild?.name ?? '⚠'
+            if (!valueNode || !valueType || valueType === '⚠') {
+                addToDiagnostics(diagnostics, optionNode, 'Missing value for Parameter: ' + parameter)
+                return
+            }
+            const refParam = allPossibleOptions.get(parameter)
+            if (!refParam) return
+            if (refParam.valueType !== 'any' && !valueType.includes(refParam.valueType)) {
+                console.log('valueType: ' + valueType + ' refParam.valueType: ' + refParam.valueType)
+                addToDiagnostics(
+                    diagnostics,
+                    optionNode,
+                    'Wrong value-type (' + valueType + ') for Parameter: ' + parameter + '! Expected: ' + refParam.valueType
+                )
+                return
+            }
         })
     })
 
@@ -197,7 +215,7 @@ function getAllUsedOptionsForBlock(
     if (!optionNodes || !blockTypeNode) return optionsNodeMap
     const blockType = state.sliceDoc(blockTypeNode.from, blockTypeNode.to).trim().toLowerCase()
     const autoGenParams = autoGenBlockMap.get(blockType)
-    if (autoGenParams) optionNodes.push(...autoGenParams)
+    if (autoGenParams && blockType !== 'bed_mesh') optionNodes.push(...autoGenParams)
 
     optionNodes.forEach((optionNode) => {
         const parameterNode = optionNode.getChild('Parameter')
@@ -209,13 +227,11 @@ function getAllUsedOptionsForBlock(
             if (gcodeParam === '') return
             if (optionsNodeMap.has(gcodeParam)) addToDiagnostics(diagnostics, gcodeNode, 'Duplicate Parameter')
             else optionsNodeMap.set(gcodeParam.split(':')[0], { paramValue: gcodeParam, optionNode: gcodeNode })
-            console.log(gcodeParam)
             return
         }
 
         const parameter = state.sliceDoc(parameterNode.from, parameterNode.to).trim().toLowerCase()
-        let valueNode = optionNode.getChild('Value')
-        if (!valueNode) optionNode.getChild('AutoGenValue')
+        const valueNode = optionNode.getChild('Value') ?? optionNode.getChild('AutoGenValue')
         const value = valueNode ? state.sliceDoc(valueNode.from, valueNode.to).trim().toLowerCase() : ''
         const paramValue = parameter + ':' + value
 

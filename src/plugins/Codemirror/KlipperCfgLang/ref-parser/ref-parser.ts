@@ -1,6 +1,6 @@
 export interface Parameter {
     name: string
-    value: string
+    valueType: string
     isOptional: boolean
     tooltip: string
 }
@@ -81,7 +81,7 @@ export function parseCfgMd(text: string): [Map<string, CfgBlock>, Map<string, Co
                     const [, parameterWithColon, parameterName, value] = parameterMatch
                     const parameter: Parameter = {
                         name: (parameterName.includes('<') ? parameterName.split('<')[0] : parameterName).toLowerCase(),
-                        value: parseValue(value.trim(), parameterName),
+                        valueType: parseValue(value.trim(), parameterName),
                         tooltip: findTooltip(textLines, lineIndex),
                         isOptional: parameterWithColon.startsWith('#'),
                     }
@@ -110,7 +110,7 @@ export function parseCfgMd(text: string): [Map<string, CfgBlock>, Map<string, Co
                     const tooltip = findTooltip(textLines, lineIndex)
                     const parameter: Parameter = {
                         name: parameterName.toLowerCase(),
-                        value: parseValue(value.trim(), parameterName),
+                        valueType: parseValue(value.trim(), parameterName),
                         tooltip: tooltip,
                         isOptional: parameterWithColon.startsWith('#'),
                     }
@@ -135,19 +135,23 @@ export function parseCfgMd(text: string): [Map<string, CfgBlock>, Map<string, Co
     return [cfgBlockMap, depParamBlockMap]
 }
 
-function parseValue(value: string, parameterName: string): string {
-    if (parameterName === 'kinematics' || parameterName === 'lcd_type' || parameterName === 'sensor_type') {
-        return parameterName + '-keyword'
+function parseValue(valueType: string, parameterName: string): string {
+    if (['true', 'false', 'True', 'False'].includes(valueType)) {
+        return 'Boolean'
+    } else if (parameterName.includes('gear_ratio')) {
+        return 'Ratio'
+    } else if (/^-?\d+(?:\.\d+)?(,\s*-?\d+(?:\.\d+)?)+$/.test(valueType)) {
+        return 'Cords'
     } else if (parameterName.includes('gcode')) {
-        return 'gcode'
-    } else if (parameterName.includes('pin') || value.match(/^(\^?!?PE\d\d?)|([^\s:]*:[^\s:]*)$/)) {
-        return 'pin'
-    } else if (!isNaN(parseFloat(value))) {
-        return 'number'
-    } else if (value === '') {
+        return 'Jinja2'
+    } else if (parameterName.includes('pin') || valueType.match(/^(\^?!?PE\d\d?)|([^\s:]*:[^\s:]*)$/)) {
+        return 'Pin'
+    } else if (/^-?\d+(?:\.\d+)?$/.test(valueType)) {
+        return 'Number'
+    } else if (valueType === '') {
         return 'any'
     } else {
-        return 'string'
+        return 'String'
     }
 }
 
@@ -171,9 +175,9 @@ export function printCfgMd() {
         msg += `[${cfgBlock.type}]   ${cfgBlock.requiresName}\n`
         cfgBlock.parameters.forEach((parameter) => {
             if (parameter.isOptional) {
-                msg += `|- ?${parameter.name}: ${parameter.value}\n`
+                msg += `|- ?${parameter.name}: ${parameter.valueType}\n`
             } else {
-                msg += `|- ${parameter.name}: ${parameter.value}\n`
+                msg += `|- ${parameter.name}: ${parameter.valueType}\n`
             }
         })
         console.log(msg)
@@ -183,9 +187,9 @@ export function printCfgMd() {
         msg += `${dependentParameter.triggerParameter}\n`
         dependentParameter.parameters.forEach((parameter) => {
             if (parameter.isOptional) {
-                msg += `|- ?${parameter.name}: ${parameter.value}\n`
+                msg += `|- ?${parameter.name}: ${parameter.valueType}\n`
             } else {
-                msg += `|- ${parameter.name}: ${parameter.value}\n`
+                msg += `|- ${parameter.name}: ${parameter.valueType}\n`
             }
         })
         console.log(msg)
