@@ -2,8 +2,7 @@ import { syntaxTree } from '@codemirror/language'
 import { linter, Diagnostic } from '@codemirror/lint'
 import { EditorState } from '@codemirror/state'
 import { SyntaxNode } from '@lezer/common'
-import { exampleText, parseCfgMd, Parameter } from '../ref-parser/ref-parser'
-import { ref } from 'vue'
+import { exampleText, parseCfgMd, Parameter } from '../parserCfgMd/parserCfgMd'
 
 // Parse Cfg Reference
 const [mdCfgBlockMap, mdDepParamBlockMap] = parseCfgMd(exampleText)

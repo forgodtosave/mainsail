@@ -2,7 +2,7 @@ import { CompletionContext } from '@codemirror/autocomplete'
 import { syntaxTree } from '@codemirror/language'
 import { EditorState } from '@codemirror/state'
 import { SyntaxNode } from '@lezer/common'
-import { exampleText, parseCfgMd } from '../ref-parser/ref-parser'
+import { exampleText, parseCfgMd } from '../parserCfgMd/parserCfgMd'
 
 // Parse Cfg Reference
 const [parsedMd, dependentParameters] = parseCfgMd(exampleText)
