@@ -1,8 +1,9 @@
-import { klipperCfgLint } from '../lang/lint.js'
+import { lintSource } from '../lang/lint.js'
 import { valueTests } from './testValues.js'
 
 describe('Variable Types', () => {
-    for (test in valueTests) {
-        it(test.name, () => klipperCfgLint(test.input) === test.output)
+    for (let test of valueTests) {
+        console.log( lintSource(test.input))
+        it(test.name, () => lintSource(test.input) === test.output)
     }
 })

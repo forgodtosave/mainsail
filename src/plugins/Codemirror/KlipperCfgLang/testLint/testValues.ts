@@ -1,11 +1,11 @@
-import { LintTest } from '../../mochaFileTests'
+import { LintTest, createEditorView } from '../../mochaFileTests'
 
 export const valueTests: LintTest[] = []
 
 valueTests.push({
-    name: 'Value where configRefMd type any',
-    input: `
-[mcu]
-Serial: /dev/ttyAMA0`,
+    name: 'very simple config with no errors',
+    input: createEditorView(`
+        [mcu]
+        Serial: /dev/ttyAMA0`),
     expected: [],
 })

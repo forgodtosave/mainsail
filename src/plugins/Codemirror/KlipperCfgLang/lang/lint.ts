@@ -2,12 +2,15 @@ import { syntaxTree } from '@codemirror/language'
 import { linter, Diagnostic } from '@codemirror/lint'
 import { EditorState } from '@codemirror/state'
 import { SyntaxNode } from '@lezer/common'
-import { exampleText, parseCfgMd, Parameter } from '../parserCfgMd/parserCfgMd'
+import { exampleText, parseCfgMd, Parameter } from '../parserCfgMd/parserCfgMd.js'
+import { EditorView } from 'codemirror'
 
 // Parse Cfg Reference
 const [mdCfgBlockMap, mdDepParamBlockMap] = parseCfgMd(exampleText)
 
-export const klipperCfgLint = linter((view) => {
+export const klipperCfgLint = linter(lintSource)
+
+export function lintSource(view: EditorView) {
     const diagnostics: Diagnostic[] = []
     const programmNode = syntaxTree(view.state).topNode
     const importNodes = programmNode.getChildren('Import')
@@ -96,7 +99,8 @@ export const klipperCfgLint = linter((view) => {
     })
 
     return diagnostics
-})
+}
+
 function addToDiagnostics(diagnostics: Diagnostic[], node: SyntaxNode, message: string) {
     diagnostics.push({
         from: node.from,

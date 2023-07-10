@@ -1,5 +1,8 @@
 import { Parser } from '@lezer/common'
 import { testTree } from '@lezer/generator/dist/test'
+import { Diagnostic } from '@codemirror/lint'
+import { EditorView } from '@codemirror/view'
+import { EditorState } from '@codemirror/state'
 
 function toLineContext(file: string, index: number) {
     const endEol = file.indexOf('\n', index + 80)
@@ -96,10 +99,18 @@ export function fileTestsParser(file: string, fileName: string, onlyNoError = fa
     return tests
 }
 
-import { Diagnostic } from '@codemirror/lint'
-
 export interface LintTest {
     name: string
-    input: string
+    input: EditorView
     expected: Diagnostic[]
+}
+
+export function createEditorView(inputText: string) {
+    const startState = EditorState.create({
+        doc: inputText,
+    })
+    return new EditorView({
+        state: startState,
+        parent: document.body,
+    })
 }
