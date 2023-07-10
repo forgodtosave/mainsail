@@ -1,4 +1,4 @@
-import { LintTest, createEditorView } from '../../mochaFileTests'
+import { LintTest, createEditorView } from '../../mochaFileTests.js'
 
 export const valueTests: LintTest[] = []
 

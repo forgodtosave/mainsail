@@ -2,7 +2,7 @@ import { syntaxTree } from '@codemirror/language'
 import { linter, Diagnostic } from '@codemirror/lint'
 import { EditorState } from '@codemirror/state'
 import { SyntaxNode } from '@lezer/common'
-import { exampleText } from '../parserCfgMd/ref'
+import { exampleText } from '../parserCfgMd/ref.js'
 import { parseCfgMd, Parameter } from '../parserCfgMd/parserCfgMd.js'
 import { EditorView } from 'codemirror'
 
